@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8m10e3v2c8d9"]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://d7x2w3m4n8k1p" path="res://addons/crom_ai/chat_dock.tscn" id="2_dock"]
+
+[node name="MainScene" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 5, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 3, 5)
+
+[node name="StatusLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+text = "CromAI Godot App Ativo!
+Chat Lateral disponível à direita ->"
+font_size = 48
+
+[node name="ChatUIOverlay" type="CanvasLayer" parent="."]
+
+[node name="HSplitContainer" type="HSplitContainer" parent="ChatUIOverlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 800
+
+[node name="3DViewportContainer" type="Control" parent="ChatUIOverlay/HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChatDockContainer" type="PanelContainer" parent="ChatUIOverlay/HSplitContainer"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+
+[node name="CromAIChatDock" parent="ChatUIOverlay/HSplitContainer/ChatDockContainer" instance=ExtResource("2_dock")]
+layout_mode = 2

@@ -1,0 +1,121 @@
+[gd_scene load_steps=2 format=3 uid="uid://d7x2w3m4n8k1p"]
+
+[ext_resource type="Script" path="res://addons/crom_ai/chat_dock.gd" id="1_dock"]
+
+[node name="CromAIChatDock" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(300, 400)
+script = ExtResource("1_dock")
+
+[node name="MainVBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MainVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainVBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "🌌 CromAI Godot Agent"
+
+[node name="ToggleConfigBtn" type="Button" parent="MainVBox/HeaderHBox"]
+layout_mode = 2
+text = "⚙️ Config"
+
+[node name="ConfigPanel" type="PanelContainer" parent="MainVBox"]
+layout_mode = 2
+
+[node name="ConfigVBox" type="VBoxContainer" parent="MainVBox/ConfigPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ProviderHBox" type="HBoxContainer" parent="MainVBox/ConfigPanel/ConfigVBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainVBox/ConfigPanel/ConfigVBox/ProviderHBox"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+text = "Provedor:"
+
+[node name="ProviderOption" type="OptionButton" parent="MainVBox/ConfigPanel/ConfigVBox/ProviderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ModelHBox" type="HBoxContainer" parent="MainVBox/ConfigPanel/ConfigVBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainVBox/ConfigPanel/ConfigVBox/ModelHBox"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+text = "Modelo:"
+
+[node name="ModelInput" type="LineEdit" parent="MainVBox/ConfigPanel/ConfigVBox/ModelHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "ex: google/gemini-2.5-flash ou llama3"
+text = "google/gemini-2.5-flash"
+
+[node name="ApiKeyHBox" type="HBoxContainer" parent="MainVBox/ConfigPanel/ConfigVBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainVBox/ConfigPanel/ConfigVBox/ApiKeyHBox"]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+text = "API Key:"
+
+[node name="ApiKeyInput" type="LineEdit" parent="MainVBox/ConfigPanel/ConfigVBox/ApiKeyHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Vazio para Ollama ou env var"
+secret = true
+
+[node name="SaveConfigBtn" type="Button" parent="MainVBox/ConfigPanel/ConfigVBox"]
+layout_mode = 2
+text = "💾 Salvar Configurações"
+
+[node name="ChatLog" type="RichTextLabel" parent="MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="QuickActionsHBox" type="HBoxContainer" parent="MainVBox"]
+layout_mode = 2
+
+[node name="BuildModeBtn" type="Button" parent="MainVBox/QuickActionsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🔨 Modo Build"
+
+[node name="PlayModeBtn" type="Button" parent="MainVBox/QuickActionsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🎮 Modo Play"
+
+[node name="ClearBtn" type="Button" parent="MainVBox/QuickActionsHBox"]
+layout_mode = 2
+text = "🧹 Limpar"
+
+[node name="InputHBox" type="HBoxContainer" parent="MainVBox"]
+layout_mode = 2
+
+[node name="PromptInput" type="LineEdit" parent="MainVBox/InputHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Converse ou dê instruções ao agente..."
+
+[node name="SendBtn" type="Button" parent="MainVBox/InputHBox"]
+layout_mode = 2
+text = "Enviar ➔"

@@ -1,0 +1,36 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="CromAI Godot Bridge"
+config/description="Engine Inteligente interligada por MCP e WebSockets para Agentes IA criarem, editarem e jogarem no Godot."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.6", "Forward Plus")
+boot_splash/show_image=false
+config/icon="res://icon.svg"
+
+[autoload]
+
+CromWorldManager="*res://addons/crom_ai/world_state_manager.gd"
+
+[debug]
+
+gdscript/warnings/directory_rules={
+"res://addons": 1
+}
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/crom_ai/plugin.cfg")
+
+[network]
+
+limits/websocket_server/max_connections=4

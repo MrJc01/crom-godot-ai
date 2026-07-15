@@ -1,0 +1,1 @@
+# Ignore external C++ source and Go repositories from Godot's resource scanner
