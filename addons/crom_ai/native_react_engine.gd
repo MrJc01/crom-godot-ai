@@ -50,7 +50,10 @@ Você possui capacidade autônoma em DOIS MODOS principais:
    - Atuar como jogador corporificado: explorar locais ('look_around'), mover-se entre cenários ('move'), interagir com objetos e NPCs usando regras lógicas ('interact'), checar status ('check_inventory_and_status').
    - Executar e testar a cena rodando ('play_scene', 'stop_scene').
 
-Sempre use as ferramentas disponíveis para inspecionar, criar e verificar os resultados antes de dar a resposta final ao usuário. Explique com clareza o seu raciocínio (Reasoning) antes e durante as ações."""
+REGRAS OBRIGATÓRIAS DE RESPOSTA E FLUXO:
+- NUNCA use emojis em suas respostas. Suas explicações devem ser estritamente formais, bem estruturadas e limpas.
+- O seu último passo de execução DEVE ser chamar a ferramenta 'play_scene' com o caminho da cena criada (ex: res://games/pong/pong.tscn) para executá-la e testá-la na engine, confirmando que a lógica do jogo está correta (por exemplo, que a física funciona e a bola não fica caindo no vazio).
+- Sempre use as ferramentas disponíveis para inspecionar, criar e verificar os resultados antes de dar a resposta final ao usuário. Explique com clareza o seu raciocínio (Reasoning) antes e durante as ações."""
 	})
 
 func set_config(new_provider: String, new_model: String, new_api_key: String) -> void:
@@ -63,12 +66,6 @@ func send_user_prompt(user_text: String) -> void:
 	if is_busy:
 		emit_signal("error_occurred", "O agente já está processando uma instrução. Aguarde.")
 		return
-		
-	if not http_request:
-		http_request = HTTPRequest.new()
-		http_request.timeout = 30.0
-		add_child(http_request)
-		http_request.request_completed.connect(_on_http_request_completed)
 		
 	is_busy = true
 	current_iterations = 0
@@ -83,8 +80,10 @@ func send_user_prompt(user_text: String) -> void:
 func interrupt() -> void:
 	if is_busy:
 		is_busy = false
-		if http_request:
+		if http_request and is_instance_valid(http_request):
 			http_request.cancel_request()
+			http_request.queue_free()
+			http_request = null
 		var msg = "Execução interrompida pelo usuário."
 		emit_signal("message_added", "system", msg)
 		emit_signal("react_finished", msg)
@@ -127,6 +126,15 @@ func _step_react_loop() -> void:
 	}
 	
 	var body_json = JSON.stringify(payload)
+	
+	if http_request and is_instance_valid(http_request):
+		http_request.queue_free()
+		
+	http_request = HTTPRequest.new()
+	http_request.timeout = 30.0
+	add_child(http_request)
+	http_request.request_completed.connect(_on_http_request_completed)
+	
 	var err = http_request.request(url, headers, HTTPClient.METHOD_POST, body_json)
 	if err != OK:
 		is_busy = false
@@ -135,6 +143,10 @@ func _step_react_loop() -> void:
 		emit_signal("react_finished", err_msg)
 
 func _on_http_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+	if http_request and is_instance_valid(http_request):
+		http_request.queue_free()
+		http_request = null
+		
 	if not is_busy:
 		return
 		
@@ -485,6 +497,43 @@ func _get_tools_definition() -> Array:
 					"properties": {
 						"scene_path": {"type": "string"}
 					}
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "remove_node",
+				"description": "Remove um nó existente da SceneTree aberta no Godot Editor.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"node_path": {"type": "string"}
+					},
+					"required": ["node_path"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "stop_scene",
+				"description": "Interrompe a execução da cena que está rodando no Godot Editor.",
+				"parameters": {"type": "object", "properties": {}}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "simulate_editor_input",
+				"description": "Simula um input/evento do teclado (ex: ui_accept, pulo, clique) na cena em execução no Godot.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"action_name": {"type": "string", "description": "Nome da ação configurada no Input Map (ex: ui_accept,ui_left,ui_right)"},
+						"pressed": {"type": "boolean", "description": "Define se o botão foi pressionado (true) ou solto (false)"}
+					},
+					"required": ["action_name"]
 				}
 			}
 		}

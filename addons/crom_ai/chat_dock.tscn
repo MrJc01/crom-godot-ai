@@ -34,6 +34,10 @@ text = "🌌 CromAI Godot Agent"
 layout_mode = 2
 text = "⚙️ Config"
 
+[node name="HistoryBtn" type="Button" parent="MainVBox/HeaderHBox"]
+layout_mode = 2
+text = "📜 Hist"
+
 [node name="ConfigPanel" type="PanelContainer" parent="MainVBox"]
 layout_mode = 2
 
@@ -119,3 +123,25 @@ placeholder_text = "Converse ou dê instruções ao agente..."
 [node name="SendBtn" type="Button" parent="MainVBox/InputHBox"]
 layout_mode = 2
 text = "Enviar ➔"
+
+[node name="HistoryPanel" type="VBoxContainer" parent="MainVBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HistoryTitle" type="Label" parent="MainVBox/HistoryPanel"]
+layout_mode = 2
+text = "Histórico de Sessões"
+
+[node name="HistoryScroll" type="ScrollContainer" parent="MainVBox/HistoryPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HistoryList" type="VBoxContainer" parent="MainVBox/HistoryPanel/HistoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="BackToChatBtn" type="Button" parent="MainVBox/HistoryPanel"]
+layout_mode = 2
+text = "Voltar ao Chat"

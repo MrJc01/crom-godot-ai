@@ -545,11 +545,11 @@ func _populate_projects_list_ui(parent: VBoxContainer) -> void:
 		
 		var hbox = HBoxContainer.new(); box.add_child(hbox)
 		var btn_edit = Button.new(); btn_edit.text = "🛠️ Abrir na IDE (com Agente IA)"; btn_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn_edit.pressed.connect(func(): _log("Abrindo IDE em: " + p_path); OS.execute("godot", ["-e", "--path", p_path]))
+		btn_edit.pressed.connect(func(): _log("Abrindo IDE em: " + p_path); OS.create_process("godot", ["-e", "--path", p_path]))
 		hbox.add_child(btn_edit)
 		
 		var btn_play = Button.new(); btn_play.text = "▶️ F5 Play"; btn_play.custom_minimum_size = Vector2(120, 32)
-		btn_play.pressed.connect(func(): _log("Executando em: " + p_path); OS.execute("godot", ["--path", p_path]))
+		btn_play.pressed.connect(func(): _log("Executando em: " + p_path); OS.create_process("godot", ["--path", p_path]))
 		hbox.add_child(btn_play)
 		parent.add_child(card)
 
@@ -600,7 +600,7 @@ window/stretch/aspect="keep"
 	input_project_name.text = ""
 	_set_view("projects")
 	_log("[color=#f9e231]🛠️ Abrindo a IDE do Godot no novo projeto...[/color]")
-	OS.execute("godot", ["-e", "--path", dest])
+	OS.create_process("godot", ["-e", "--path", dest])
 
 func _init_agent_and_monitor() -> void:
 	var MonClass = load("res://benchmark/benchmark_monitor.gd")

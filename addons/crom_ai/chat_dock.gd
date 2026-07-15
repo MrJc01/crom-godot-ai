@@ -9,6 +9,15 @@ extends Control
 
 var react_engine: Node = null
 var pending_benchmark_confirm: bool = false
+var _chat_history: Array[Dictionary] = []
+var _session_id: String = ""
+
+@onready var history_btn: Button = $MainVBox/HeaderHBox/HistoryBtn
+@onready var history_panel: VBoxContainer = $MainVBox/HistoryPanel
+@onready var history_list: VBoxContainer = $MainVBox/HistoryPanel/HistoryScroll/HistoryList
+@onready var back_to_chat_btn: Button = $MainVBox/HistoryPanel/BackToChatBtn
+@onready var quick_actions_hbox: HBoxContainer = $MainVBox/QuickActionsHBox
+@onready var input_hbox: HBoxContainer = $MainVBox/InputHBox
 
 @onready var config_panel: PanelContainer = $MainVBox/ConfigPanel
 @onready var provider_option: OptionButton = $MainVBox/ConfigPanel/ConfigVBox/ProviderHBox/ProviderOption
@@ -52,18 +61,32 @@ func _ready() -> void:
 	save_config_btn.pressed.connect(_save_and_apply_config)
 	send_btn.pressed.connect(_on_send_pressed)
 	prompt_input.text_submitted.connect(_on_send_pressed)
+	chat_log.meta_clicked.connect(_on_chat_log_meta_clicked)
+	history_btn.pressed.connect(_on_history_btn_pressed)
+	back_to_chat_btn.pressed.connect(_on_back_to_chat_btn_pressed)
 	
 	build_mode_btn.pressed.connect(func(): _send_direct_tool("switch_mode", {"mode": "build"}))
 	play_mode_btn.pressed.connect(func(): _send_direct_tool("switch_mode", {"mode": "play"}))
 	clear_btn.pressed.connect(func():
 		chat_log.clear()
+		_chat_history.clear()
+		_session_id = ""
 		if react_engine and react_engine.has_method("_reset_messages"):
 			react_engine._reset_messages()
-		_append_to_log("[color=#89b4fa]🧹 Histórico do chat limpo.[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Histórico do chat limpo.",
+			"expanded": false
+		})
+		_render_chat_log()
 	)
 	
-	_append_to_log("[color=#a6e3a1][b]🌌 CromAI Godot Agent — Chat Lateral Inicializado![/b][/color]")
-	_append_to_log("[color=#cdd6f4]Pronto para receber instruções de criação (Build) e exploração (Play).[/color]")
+	_chat_history.append({
+		"role": "system",
+		"text": "CromAI Godot Agent — Chat Lateral Inicializado!\nPronto para receber instruções de criação (Build) e exploração (Play).",
+		"expanded": false
+	})
+	_render_chat_log()
 
 func _init_provider_options() -> void:
 	provider_option.clear()
@@ -143,19 +166,39 @@ func _on_send_pressed(_text: String = "") -> void:
 		return
 		
 	prompt_input.text = ""
-	_append_to_log("\n[color=#89dceb][b]🧑 Você:[/b][/color] " + prompt)
+	_chat_history.append({
+		"role": "user",
+		"text": prompt,
+		"expanded": false
+	})
+	_render_chat_log()
+	_save_session()
 	
 	if prompt.to_lower().begins_with("/limpar") or prompt.to_lower().begins_with("/clean"):
-		_append_to_log("[color=#f9e2af]🧹 Limpando todos os jogos gerados da pasta res://games/...[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Limpando todos os jogos gerados da pasta res://games/...",
+			"expanded": false
+		})
 		_clean_games_dir("res://games")
-		_append_to_log("[color=#a6e3a1]✅ Jogos limpos! Ambiente pronto para verificação funcional ou nova construção pelo Agente.[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Jogos limpos! Ambiente pronto para verificação funcional ou nova construção pelo Agente.",
+			"expanded": false
+		})
+		_render_chat_log()
+		_save_session()
 		return
 	
 	if prompt.to_lower().begins_with("/benchmark"):
 		pending_benchmark_confirm = true
-		_append_to_log("\n[color=#f9e2af][b]⚡ Comando /benchmark detectado![/b][/color]")
-		_append_to_log("[color=#cdd6f4]Deseja iniciar a verificação e construção funcional dos minijogos via Agente IA ReAct NATIVO para demonstração no vídeo? Todas as respostas e criações serão atualizadas ao vivo na IDE.[/color]")
-		_append_to_log("[color=#a6e3a1][b]👉 Digite 'confirmar' ou 'sim' para iniciar.[/b][/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Comando /benchmark detectado! Deseja iniciar a verificação e construção funcional dos minijogos via Agente IA ReAct NATIVO? Digite 'confirmar' ou 'sim' para iniciar.",
+			"expanded": false
+		})
+		_render_chat_log()
+		_save_session()
 		return
 		
 	if pending_benchmark_confirm and (prompt.to_lower() in ["sim", "confirmar", "yes", "ok", "s", "prosseguir"]):
@@ -164,14 +207,26 @@ func _on_send_pressed(_text: String = "") -> void:
 		return
 	elif pending_benchmark_confirm:
 		pending_benchmark_confirm = false
-		_append_to_log("[color=#7f849c][i]Comando /benchmark cancelado.[/i][/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Comando /benchmark cancelado.",
+			"expanded": false
+		})
+		_render_chat_log()
+		_save_session()
 		
 	_disable_input()
 	
 	if react_engine and react_engine.has_method("send_user_prompt"):
 		react_engine.send_user_prompt(prompt)
 	else:
-		_append_to_log("[color=#f38ba8][Erro] Motor ReAct nativo não inicializado.[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Erro: Motor ReAct nativo não inicializado.",
+			"expanded": false
+		})
+		_render_chat_log()
+		_save_session()
 		_enable_input()
 
 func _clean_games_dir(path: String) -> void:
@@ -190,21 +245,53 @@ func _clean_games_dir(path: String) -> void:
 		dir.list_dir_end()
 
 func _run_live_agent_benchmark() -> void:
-	_append_to_log("\n[color=#f9e231][b]🚀 [CromAI ReAct Engine] Iniciando Verificação Funcional ao Vivo...[/b][/color]")
-	_append_to_log("[color=#89b4fa]A engine processará as cenas, injetando telemetria em tempo real.[/color]")
+	_chat_history.append({
+		"role": "system",
+		"text": "Iniciando Verificação Funcional ao Vivo... A engine processará as cenas, injetando telemetria em tempo real.",
+		"expanded": false
+	})
 	_disable_input()
 	
 	# Pre-criar diretórios vazios e README de base
 	var game_registry = load("res://addons/crom_ai/core/game_registry.gd")
 	if game_registry:
 		game_registry.setup_benchmark_directories()
-		_append_to_log("[color=#a6e3a1]Diretórios base e res://games/README.md criados com sucesso![/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Diretórios base e res://games/README.md criados com sucesso!",
+			"expanded": false
+		})
+	_render_chat_log()
 	
 	if react_engine and react_engine.has_method("send_user_prompt"):
-		var benchmark_prompt = "Você é o Agente ReAct Godot na IDE. O usuário iniciou o /benchmark. Como os minijogos na pasta res://games/ estão vazios, sua tarefa é CRIAR e IMPLEMENTAR os minijogos Pong (res://games/pong/pong.tscn e script res://games/pong/pong.gd) e Flappy Bird (res://games/flappy/flappy.tscn e script res://games/flappy/flappy.gd) do zero! Use suas ferramentas para criar os nós, escrever o código GDScript e salvar as cenas. Certifique-se de que os minijogos fiquem funcionais para listar no Arcade Hub e, por fim, explique o funcionamento deles."
+		var benchmark_prompt := """Você é o Agente ReAct Godot na IDE. O usuário iniciou o /benchmark.
+Sua tarefa é CRIAR e IMPLEMENTAR COMPLETA E OBRIGATORIAMENTE os seguintes jogos do zero:
+
+1. Pong Clássico:
+   - Leia as instruções em: res://games/pong/README.md
+   - Script: res://games/pong/pong.gd
+   - Cena: res://games/pong/pong.tscn
+
+2. Flappy Bird:
+   - Leia as instruções em: res://games/flappy/README.md
+   - Script: res://games/flappy/flappy.gd
+   - Cena: res://games/flappy/flappy.tscn
+
+REGRAS DE EXECUÇÃO IMPORTANTES:
+- Você deve ler o arquivo README.md de cada jogo ANTES de criá-los para seguir as especificações exatas.
+- Você deve gerar arquivos GDScript completos e funcionais.
+- Você deve gerar as cenas .tscn correspondentes para que os jogos apareçam no Arcade Hub.
+- NÃO finalize a execução com sua resposta final até ter criado com sucesso TODOS OS 4 ARQUIVOS acima.
+- Após criar cada um deles, liste o diretório ou verifique os arquivos para confirmar a criação.
+"""
 		react_engine.send_user_prompt(benchmark_prompt)
 	else:
-		_append_to_log("[color=#f38ba8][Erro] NativeReActEngine indisponível.[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Erro: NativeReActEngine indisponível.",
+			"expanded": false
+		})
+		_render_chat_log()
 		_enable_input()
 
 func _enable_input() -> void:
@@ -219,40 +306,282 @@ func _disable_input() -> void:
 	prompt_input.editable = false
 
 func _on_agent_message_added(role: String, text: String) -> void:
-	match role:
-		"user":
-			_append_to_log("\n[color=#89dceb][b]🧑 Você:[/b][/color] " + text)
-		"assistant":
-			_append_to_log("\n[color=#cba6f7][b]🤖 CromAgente:[/b][/color] " + text)
-		"system":
-			_append_to_log("[color=#7f849c][i]" + text + "[/i][/color]")
-		"tool_call":
-			_append_to_log("[color=#f9e2af]" + text + "[/color]")
-		"tool_res":
-			_append_to_log("[color=#a6e3a1]" + text + "[/color]")
+	_chat_history.append({
+		"role": role,
+		"text": text,
+		"expanded": true
+	})
+	_render_chat_log()
+	_save_session()
 
 func _on_tool_executing(tool_name: String, _args: Dictionary) -> void:
-	pass # O log detalhado já é disparado como tool_call e tool_res
+	pass
 
 func _on_react_finished(_final_answer: String) -> void:
+	for entry in _chat_history:
+		if entry["role"] in ["tool_call", "tool_res"]:
+			entry["expanded"] = false
+	_render_chat_log()
+	_save_session()
 	_enable_input()
 
 func _on_error_occurred(err_msg: String) -> void:
-	_append_to_log("\n[color=#f38ba8][b]❌ Erro:[/b] " + err_msg + "[/color]")
+	for entry in _chat_history:
+		if entry["role"] in ["tool_call", "tool_res"]:
+			entry["expanded"] = false
+	_chat_history.append({
+		"role": "system",
+		"text": "Erro: " + err_msg,
+		"expanded": false
+	})
+	_render_chat_log()
+	_save_session()
 	_enable_input()
 
 func _append_to_log(bbcode: String) -> void:
-	if chat_log:
-		chat_log.append_text(bbcode + "\n")
+	_chat_history.append({
+		"role": "system",
+		"text": bbcode,
+		"expanded": false
+	})
+	_render_chat_log()
+
+func _render_chat_log() -> void:
+	if not chat_log:
+		return
+	chat_log.clear()
+	
+	for i in range(_chat_history.size()):
+		var entry = _chat_history[i]
+		var role = entry["role"]
+		var text = entry["text"]
+		var expanded = entry.get("expanded", false)
+		
+		# Limpa emojis das mensagens normais do agente e do usuário para manter formal
+		var clean_text = _remove_emojis(text)
+		if role == "user" or role == "assistant":
+			clean_text = _format_badges(clean_text)
+			
+		match role:
+			"user":
+				chat_log.append_text("\n[color=#89dceb][b]Você:[/b][/color] " + clean_text + "\n")
+			"assistant":
+				chat_log.append_text("\n[color=#cba6f7][b]CromAgente:[/b][/color]\n" + clean_text + "\n")
+			"system":
+				chat_log.append_text("[color=#7f849c][i]" + clean_text + "[/i][/color]\n")
+			"tool_call":
+				var tool_name = _extract_tool_name(clean_text)
+				if expanded:
+					chat_log.append_text("[url=toggle_%d]▼ [color=#f9e2af]%s[/color][/url]\n" % [i, tool_name])
+				else:
+					chat_log.append_text("[url=toggle_%d]▶ [color=#a6e3a1]✓ %s[/color][/url]\n" % [i, tool_name])
+			"tool_res":
+				if expanded:
+					chat_log.append_text("[bgcolor=#1e1e2e][color=#a8a8af]  " + clean_text + "[/color][/bgcolor]\n")
+
+func _remove_emojis(s: String) -> String:
+	var emojis = ["🧑", "🤖", "✅", "❌", "🧹", "💾", "⚡", "👉", "🚀", "🏆", "⚠️", "💡", "🔐", "📡", "🌌", "⭐"]
+	var res = s
+	for e in emojis:
+		res = res.replace(e, "")
+	return res
+
+func _format_badges(s: String) -> String:
+	var regex := RegEx.new()
+	regex.compile("(?<!\\w)res:\\/\\/[a-zA-Z0-9_\\/.-]+")
+	
+	var result = s
+	var matches = regex.search_all(s)
+	for j in range(matches.size() - 1, -1, -1):
+		var m = matches[j]
+		var path = m.get_string()
+		var file_name = path.get_file()
+		if file_name == "":
+			file_name = path.get_base_dir().get_file() + "/"
+		var badge = "[bgcolor=#313244][color=#89b4fa][url=%s]%s[/url][/color][/bgcolor]" % [path, file_name]
+		result = result.substr(0, m.get_start()) + badge + result.substr(m.get_end())
+	return result
+
+func _extract_tool_name(s: String) -> String:
+	var regex := RegEx.new()
+	regex.compile("Ferramenta:\\s*([a-zA-Z0-9_]+)")
+	var res = regex.search(s)
+	if res:
+		var name = res.get_string(1)
+		var path_regex := RegEx.new()
+		path_regex.compile("res:\\/\\/[a-zA-Z0-9_\\/.-]+")
+		var path_res = path_regex.search(s)
+		if path_res:
+			return "Usou %s (%s)" % [name, path_res.get_string().get_file()]
+		return "Usou %s" % name
+	return s.strip_edges()
+
+func _on_chat_log_meta_clicked(meta: Variant) -> void:
+	var m_str = str(meta)
+	if m_str.begins_with("toggle_"):
+		var idx = int(m_str.trim_prefix("toggle_"))
+		if idx >= 0 and idx < _chat_history.size():
+			var is_exp = _chat_history[idx].get("expanded", false)
+			_chat_history[idx]["expanded"] = not is_exp
+			# Abre/fecha o resultado (tool_res) correspondente se estiver logo em seguida
+			if idx + 1 < _chat_history.size() and _chat_history[idx + 1]["role"] == "tool_res":
+				_chat_history[idx + 1]["expanded"] = not is_exp
+			_render_chat_log()
+	elif m_str.begins_with("res://") or m_str.begins_with("/home/"):
+		if Engine.is_editor_hint():
+			var ei = EditorInterface
+			if ei:
+				if m_str.ends_with(".gd") or m_str.ends_with(".gdscript"):
+					var res = load(m_str)
+					if res:
+						ei.edit_resource(res)
+				elif m_str.ends_with(".tscn"):
+					ei.open_scene_from_path(m_str)
+				else:
+					ei.select_file(m_str)
 
 func _send_direct_tool(tool_name: String, args: Dictionary) -> void:
-	_append_to_log("\n[color=#f9e2af]⚙️ Ação Rápida: %s(%s)[/color]" % [tool_name, JSON.stringify(args)])
+	_chat_history.append({
+		"role": "system",
+		"text": "Ação Rápida: %s(%s)" % [tool_name, JSON.stringify(args)],
+		"expanded": false
+	})
+	_render_chat_log()
 	var proc = _find_command_processor()
 	if proc and proc.has_method("process_command"):
 		var res = proc.process_command(JSON.stringify({"action": tool_name, "params": args}))
-		_append_to_log("[color=#a6e3a1]✅ Resultado: %s[/color]" % JSON.stringify(res))
+		_chat_history.append({
+			"role": "system",
+			"text": "Resultado: %s" % JSON.stringify(res),
+			"expanded": false
+		})
+		_render_chat_log()
 	else:
-		_append_to_log("[color=#f38ba8][Erro] CommandProcessor não encontrado para ação direta.[/color]")
+		_chat_history.append({
+			"role": "system",
+			"text": "Erro: CommandProcessor não encontrado para ação direta.",
+			"expanded": false
+		})
+		_render_chat_log()
+
+func _on_history_btn_pressed() -> void:
+	var is_history_visible = history_panel.visible
+	if not is_history_visible:
+		config_panel.visible = false
+		chat_log.visible = false
+		quick_actions_hbox.visible = false
+		input_hbox.visible = false
+		history_panel.visible = true
+		_load_sessions_list()
+	else:
+		_on_back_to_chat_btn_pressed()
+
+func _on_back_to_chat_btn_pressed() -> void:
+	history_panel.visible = false
+	chat_log.visible = true
+	quick_actions_hbox.visible = true
+	input_hbox.visible = true
+
+func _load_sessions_list() -> void:
+	for child in history_list.get_children():
+		child.queue_free()
+		
+	var dir_path = "res://addons/crom_ai/chat_history"
+	if not DirAccess.dir_exists_absolute(dir_path):
+		var label = Label.new()
+		label.text = "Nenhum histórico encontrado."
+		history_list.add_child(label)
+		return
+		
+	var dir = DirAccess.open(dir_path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		var sessions: Array[String] = []
+		while file_name != "":
+			if not dir.current_is_dir() and file_name.ends_with(".json"):
+				sessions.append(file_name)
+			file_name = dir.get_next()
+		dir.list_dir_end()
+		
+		sessions.sort()
+		sessions.reverse()
+		
+		if sessions.is_empty():
+			var label = Label.new()
+			label.text = "Nenhum histórico encontrado."
+			history_list.add_child(label)
+			return
+			
+		for s_file in sessions:
+			var full_path = dir_path + "/" + s_file
+			var file = FileAccess.open(full_path, FileAccess.READ)
+			if file:
+				var json_str = file.get_as_text()
+				file.close()
+				var data = JSON.parse_string(json_str)
+				if data is Dictionary and data.has("history"):
+					var history_arr = data["history"]
+					var first_prompt = "Conversa sem mensagens"
+					for entry in history_arr:
+						if entry["role"] == "user":
+							first_prompt = entry["text"]
+							break
+					
+					var btn = Button.new()
+					if first_prompt.length() > 30:
+						first_prompt = first_prompt.left(27) + "..."
+					btn.text = "%s - %s" % [s_file.trim_prefix("session_").trim_suffix(".json"), first_prompt]
+					btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
+					btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					btn.pressed.connect(func(): _load_session_by_file(s_file))
+					history_list.add_child(btn)
+
+func _load_session_by_file(file_name: String) -> void:
+	var file_path = "res://addons/crom_ai/chat_history/" + file_name
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if file:
+		var json_str = file.get_as_text()
+		file.close()
+		var data = JSON.parse_string(json_str)
+		if data is Dictionary:
+			_session_id = data.get("session_id", "")
+			_chat_history = data.get("history", [])
+			if react_engine and react_engine.get("messages") is Array:
+				react_engine.messages.clear()
+				react_engine.messages.append({
+					"role": "system",
+					"content": "Você é o CromAgente..."
+				})
+				for entry in _chat_history:
+					if entry["role"] in ["user", "assistant"]:
+						react_engine.messages.append({
+							"role": entry["role"],
+							"content": entry["text"]
+						})
+			_render_chat_log()
+			_on_back_to_chat_btn_pressed()
+
+func _save_session() -> void:
+	if _chat_history.is_empty():
+		return
+	if _session_id.is_empty():
+		var dt = Time.get_datetime_dict_from_system()
+		_session_id = "%04d-%02d-%02d_%02d-%02d-%02d" % [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+		
+	var dir_path = "res://addons/crom_ai/chat_history"
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+		
+	var file_path = dir_path + "/session_" + _session_id + ".json"
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if file:
+		var data = {
+			"session_id": _session_id,
+			"history": _chat_history
+		}
+		file.store_string(JSON.stringify(data, "\t"))
+		file.close()
 
 var _cached_proc: Node = null
 

@@ -138,12 +138,12 @@ renderer/rendering_method.mobile="gl_compatibility"
 # --- Abrir projeto no Editor Godot ---
 
 static func open_in_editor(project_path: String) -> void:
-	OS.execute("godot", ["-e", "--path", project_path])
+	OS.create_process("godot", ["-e", "--path", project_path])
 
 # --- Executar projeto (Play / F5) ---
 
 static func run_project(project_path: String) -> void:
-	OS.execute("godot", ["--path", project_path])
+	OS.create_process("godot", ["--path", project_path])
 
 # --- Estatísticas de um projeto ---
 

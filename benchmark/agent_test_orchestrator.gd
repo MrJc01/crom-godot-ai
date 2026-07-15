@@ -95,6 +95,11 @@ func _initialize() -> void:
 	print("[CromAgentOrchestrator] Conectando Agente Gemini 2.5 à Bateria de 15 Testes")
 	print("=========================================================================")
 	
+	# Prepara diretórios e arquivos README de cada jogo
+	var game_registry = load("res://addons/crom_ai/core/game_registry.gd")
+	if game_registry:
+		game_registry.setup_benchmark_directories()
+	
 	var MonClass = load("res://benchmark/benchmark_monitor.gd")
 	monitor = MonClass.new()
 	root.add_child(monitor)
@@ -138,8 +143,13 @@ func _start_next_test_task() -> void:
 	var task = test_tasks[current_task_index]
 	print("\n>>> [AGENTE INICIANDO TESTE %d/15] %s (%s) <<<" % [current_task_index + 1, task["name"], task["id"]])
 	
-	# Envia prompt ao Agente
-	engine.send_user_prompt(task["prompt"])
+	# Envia prompt dinâmico instruindo a leitura do README correspondente
+	var readme_path = "res://games/" + task["id"] + "/README.md"
+	var prompt = "Você é o Agente ReAct Godot na IDE. Sua tarefa atual é: " + task["prompt"] + "\n"
+	prompt += "ATENÇÃO OBRIGATÓRIA:\n"
+	prompt += "- Você DEVE ler as especificações exatas e completas do jogo no arquivo: " + readme_path + " ANTES de criar os códigos.\n"
+	prompt += "- Crie a cena e scripts seguindo estritamente as regras desse arquivo README.\n"
+	engine.send_user_prompt(prompt)
 
 func _on_agent_finished_task(final_answer: String) -> void:
 	if current_task_index >= test_tasks.size():

@@ -1,3 +1,16 @@
+# Godot 4 cache, import and settings
+.godot/
+*.translation
 
-# Build output
+# Build outputs
 release/
+
+# Telemetry and benchmark logs
+benchmark_logs/
+
+# Offline Docs downloaded files and extracted HTML
+docs/*.zip
+docs/html/
+
+# Generated games folder (procedural AI tests)
+games/

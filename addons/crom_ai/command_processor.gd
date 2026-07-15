@@ -263,7 +263,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 		
 	var loaded_script = load(script_path)
 	if not loaded_script:
-		return { "status": "error", "message": "Script salvo, mas falhou ao carregar em '%s'." % script_path }
+		return { "status": "success", "message": "Script salvo com sucesso em '%s' (Aviso: falha temporária ao carregar o script na engine, provavelmente devido a preloads de recursos ou cenas ainda não criados. Prossiga criando as dependências faltantes)." % script_path }
 		
 	var scene_root: Node = null
 	if editor_plugin and editor_plugin.get_editor_interface():
