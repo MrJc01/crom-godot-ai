@@ -1,5 +1,7 @@
 class_name StyleFactory
 
+const ThemeConstants = preload("res://addons/crom_ai/core/theme_constants.gd")
+
 # ==============================================================================
 # Style Factory — Cria StyleBoxFlat, temas de Button/Label/Panel
 # Nenhum componente cria estilos inline. Todos chamam este factory.
