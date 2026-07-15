@@ -17,11 +17,15 @@ func _enter_tree() -> void:
 	var ProcessorClass = load("res://addons/crom_ai/command_processor.gd")
 	if ProcessorClass:
 		command_processor = ProcessorClass.new(self)
+		command_processor.name = "CommandProcessor"
+		add_child(command_processor)
 		
 	# Instancia o Servidor WebSocket na porta 8080
 	var ServerClass = load("res://addons/crom_ai/websocket_server.gd")
 	if ServerClass and command_processor:
 		websocket_server = ServerClass.new(command_processor, 8080)
+		websocket_server.name = "WebSocketServer"
+		add_child(websocket_server)
 		var started = websocket_server.start_server()
 		if started:
 			print("[CromAI Bridge] Sistema pronto! Conecte seu Servidor MCP/IA na porta 8080.")
@@ -50,7 +54,10 @@ func _exit_tree() -> void:
 	if websocket_server:
 		if websocket_server.has_method("stop_server"):
 			websocket_server.stop_server()
+		websocket_server.queue_free()
 		websocket_server = null
-	command_processor = null
+	if command_processor:
+		command_processor.queue_free()
+		command_processor = null
 	print("[CromAI Bridge] Plugin desativado.")
 

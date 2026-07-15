@@ -1,5 +1,5 @@
 @tool
-extends RefCounted
+extends Node
 
 # ==============================================================================
 # CromWorldManager: Sistema de Estado, Ontologia e Regras para IA (MCP / Godot)

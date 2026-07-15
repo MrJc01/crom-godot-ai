@@ -184,15 +184,18 @@ func _send_direct_tool(tool_name: String, args: Dictionary) -> void:
 	else:
 		_append_to_log("[color=#f38ba8][Erro] CommandProcessor não encontrado para ação direta.[/color]")
 
+var _cached_proc: Node = null
+
 func _find_command_processor() -> Node:
+	if _cached_proc:
+		return _cached_proc
 	var tree = get_tree()
-	if not tree:
-		return null
-	var root = tree.root
-	if root and root.has_node("CommandProcessor"):
-		return root.get_node("CommandProcessor")
-	# Ou busca pelo plugin de editor
+	if tree and tree.root and tree.root.has_node("CommandProcessor"):
+		return tree.root.get_node("CommandProcessor")
 	var proc_class = load("res://addons/crom_ai/command_processor.gd")
 	if proc_class:
-		return proc_class.new(null)
+		_cached_proc = proc_class.new(null)
+		_cached_proc.name = "CommandProcessor"
+		add_child(_cached_proc)
+		return _cached_proc
 	return null

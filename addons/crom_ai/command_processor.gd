@@ -1,5 +1,5 @@
 @tool
-extends RefCounted
+extends Node
 
 # ==============================================================================
 # CommandProcessor: Processa comandos JSON recebidos via WebSocket/MCP
@@ -85,16 +85,20 @@ func process_command(command_json: String) -> Dictionary:
 		_:
 			return { "status": "error", "message": "Ação desconhecida: '%s'." % action }
 
-var _cached_world_manager: RefCounted = null
-
-func _get_world_manager() -> RefCounted:
-	if _cached_world_manager:
-		return _cached_world_manager
+func _get_world_manager() -> Node:
+	if Engine.has_singleton("CromWorldManager"):
+		return Engine.get_singleton("CromWorldManager")
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree and tree.root.has_node("CromWorldManager"):
+		return tree.root.get_node("CromWorldManager")
 	var script = load("res://addons/crom_ai/world_state_manager.gd")
 	if script:
-		_cached_world_manager = script.new()
-		return _cached_world_manager
-	return self # Fallback seguro
+		var instance = script.new()
+		instance.name = "CromWorldManager"
+		if tree and tree.root:
+			tree.root.add_child(instance)
+		return instance
+	return self
 
 # --- Implementações do Editor ---
 

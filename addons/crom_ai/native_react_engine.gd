@@ -12,7 +12,7 @@ signal react_finished(final_answer: String)
 signal error_occurred(err_msg: String)
 
 var http_request: HTTPRequest = null
-var command_processor: RefCounted = null
+var command_processor: Node = null
 
 var provider: String = "openrouter" # "openrouter", "ollama", "cromia", "openai"
 var model: String = "google/gemini-2.5-flash"
@@ -23,7 +23,7 @@ var is_busy: bool = false
 var current_iterations: int = 0
 var max_iterations: int = 10
 
-func _init(processor: RefCounted = null) -> void:
+func _init(processor: Node = null) -> void:
 	command_processor = processor
 
 func _ready() -> void:
