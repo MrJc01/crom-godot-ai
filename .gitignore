@@ -14,3 +14,4 @@ docs/html/
 
 # Generated games folder (procedural AI tests)
 games/
+.crom/

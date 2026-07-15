@@ -629,8 +629,11 @@ func _load_game(info: Dictionary) -> void:
 
 func _input(event: InputEvent) -> void:
 	if current_view == "games" and game_display and game_display.visible and viewport_sub and is_instance_valid(viewport_sub):
-		if event is InputEventKey: viewport_sub.push_input(event)
-		elif (event is InputEventMouseButton or event is InputEventMouseMotion): viewport_sub.push_input(event)
+		if event is InputEventKey:
+			viewport_sub.push_input(event)
+			get_viewport().set_input_as_handled()
+		elif (event is InputEventMouseButton or event is InputEventMouseMotion):
+			viewport_sub.push_input(event)
 
 func _process(_delta: float) -> void:
 	if status_lbl_right and is_inside_tree():

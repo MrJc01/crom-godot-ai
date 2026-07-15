@@ -27,6 +27,17 @@ var player_state: Dictionary = {
 
 func _ready() -> void:
 	print("[CromWorldManager] Inicializado no modo: ", current_mode)
+	# Registro dinâmico de teclas de ação para evitar erros de InputMap
+	for key_name in ["w", "s", "a", "d"]:
+		if not InputMap.has_action(key_name):
+			InputMap.add_action(key_name)
+			var ev = InputEventKey.new()
+			match key_name:
+				"w": ev.physical_keycode = KEY_W
+				"s": ev.physical_keycode = KEY_S
+				"a": ev.physical_keycode = KEY_A
+				"d": ev.physical_keycode = KEY_D
+			InputMap.action_add_event(key_name, ev)
 
 # ==============================================================================
 # 1. FERRAMENTAS DE CONSTRUÇÃO (BUILD MODE)

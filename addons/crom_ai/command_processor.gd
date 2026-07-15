@@ -115,15 +115,16 @@ func _get_world_manager() -> Node:
 
 func _get_scene_tree() -> Dictionary:
 	var scene_root: Node = null
+	var tree = Engine.get_main_loop() as SceneTree
+	
 	if editor_plugin and editor_plugin.get_editor_interface():
 		scene_root = editor_plugin.get_editor_interface().get_edited_scene_root()
-	else:
-		var tree = Engine.get_main_loop() as SceneTree
-		if tree:
-			scene_root = tree.current_scene if tree.current_scene else tree.root
-			
-	if not scene_root:
-		return { "status": "error", "message": "Nenhuma cena aberta no editor no momento." }
+		
+	if not scene_root and tree:
+		scene_root = tree.current_scene
+		
+	if not scene_root or (tree and scene_root == tree.root):
+		return { "status": "error", "message": "Nenhuma cena de jogo ativa para obter a árvore de nós no momento." }
 		
 	var tree_data = _serialize_node_tree(scene_root)
 	return { "status": "success", "scene_root_name": scene_root.name, "tree": tree_data }
@@ -296,13 +297,41 @@ func _stop_scene() -> Dictionary:
 func _simulate_editor_input(params: Dictionary) -> Dictionary:
 	var action_name: String = str(params.get("action_name", "ui_accept"))
 	var pressed: bool = bool(params.get("pressed", true))
+	var key_name: String = str(params.get("key_name", "")).to_lower()
+	var click_pos = params.get("click_position", null)
 	
 	var ev = InputEventAction.new()
 	ev.action = action_name
 	ev.pressed = pressed
 	Input.parse_input_event(ev)
 	
-	return { "status": "success", "message": "Input de ação '%s' (pressed: %s) simulado." % [action_name, str(pressed)] }
+	var msg = "Input de ação '%s' (pressed: %s) simulado." % [action_name, str(pressed)]
+	
+	if key_name != "":
+		var key_ev = InputEventKey.new()
+		key_ev.pressed = pressed
+		match key_name:
+			"left", "left_arrow": key_ev.keycode = KEY_LEFT
+			"right", "right_arrow": key_ev.keycode = KEY_RIGHT
+			"up", "up_arrow": key_ev.keycode = KEY_UP
+			"down", "down_arrow": key_ev.keycode = KEY_DOWN
+			"space": key_ev.keycode = KEY_SPACE
+			"w": key_ev.keycode = KEY_W
+			"a": key_ev.keycode = KEY_A
+			"s": key_ev.keycode = KEY_S
+			"d": key_ev.keycode = KEY_D
+		Input.parse_input_event(key_ev)
+		msg += " Tecla física '%s' enviada." % key_name
+		
+	if click_pos is Array and click_pos.size() == 2:
+		var mouse_ev = InputEventMouseButton.new()
+		mouse_ev.button_index = MOUSE_BUTTON_LEFT
+		mouse_ev.pressed = pressed
+		mouse_ev.position = Vector2(click_pos[0], click_pos[1])
+		Input.parse_input_event(mouse_ev)
+		msg += " Clique do mouse em (%d, %d) enviado." % [click_pos[0], click_pos[1]]
+		
+	return { "status": "success", "message": msg }
 
 func _capture_screenshot(_params: Dictionary) -> Dictionary:
 	var vp = get_viewport()
@@ -336,12 +365,29 @@ func _get_open_editor_context() -> Dictionary:
 
 func _read_project_file(params: Dictionary) -> Dictionary:
 	var path: String = str(params.get("file_path", ""))
+	
+	# Verificar se o arquivo existe
 	if not FileAccess.file_exists(path):
 		return { "status": "error", "message": "Arquivo não encontrado: " + path }
+		
+	# Filtrar extensões permitidas de texto para evitar leitura de arquivos binários
+	var ext = path.get_extension().to_lower()
+	var safe_exts = ["gd", "md", "txt", "json", "tscn", "cfg", "xml", "html", "css", "js", "tres", "gitignore", "svg", "ini"]
+	if ext != "" and not ext in safe_exts:
+		return { "status": "error", "message": "Tipo de arquivo binário ou não suportado para leitura direta: ." + ext }
+		
 	var f = FileAccess.open(path, FileAccess.READ)
 	if not f:
 		return { "status": "error", "message": "Não foi possível abrir o arquivo: " + path }
+		
+	# Impedir leitura de arquivos muito grandes (maiores que 500 KB) para evitar crash de CowData
+	var file_size = f.get_length()
+	if file_size > 500000:
+		f.close()
+		return { "status": "error", "message": "Arquivo muito grande para leitura direta (%d bytes). Limite máximo de 500 KB." % file_size }
+		
 	var content = f.get_as_text()
+	f.close()
 	return { "status": "success", "file_path": path, "content": content }
 
 func _modify_project_file(params: Dictionary) -> Dictionary:

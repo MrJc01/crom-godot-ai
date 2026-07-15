@@ -11,6 +11,11 @@ var react_engine: Node = null
 var pending_benchmark_confirm: bool = false
 var _chat_history: Array[Dictionary] = []
 var _session_id: String = ""
+var _error_lut: Array[String] = []
+var _last_log_size: int = 0
+var _log_timer: Timer = null
+var _error_popup: ConfirmationDialog = null
+var _last_error_context: String = ""
 
 @onready var history_btn: Button = $MainVBox/HeaderHBox/HistoryBtn
 @onready var history_panel: VBoxContainer = $MainVBox/HistoryPanel
@@ -87,6 +92,7 @@ func _ready() -> void:
 		"expanded": false
 	})
 	_render_chat_log()
+	_start_log_monitoring()
 
 func _init_provider_options() -> void:
 	provider_option.clear()
@@ -127,7 +133,6 @@ func _load_saved_config() -> void:
 			api_key_input.text = key
 			return
 			
-	# Padrão inicial conforme solicitado: google/gemini-2.5-flash ou ollama
 	provider_option.select(0)
 	model_input.text = "google/gemini-2.5-flash"
 	api_key_input.text = "sk-or-v1-key-removed-by-antigravity"
@@ -214,6 +219,7 @@ func _on_send_pressed(_text: String = "") -> void:
 		})
 		_render_chat_log()
 		_save_session()
+		return
 		
 	_disable_input()
 	
@@ -265,24 +271,61 @@ func _run_live_agent_benchmark() -> void:
 	
 	if react_engine and react_engine.has_method("send_user_prompt"):
 		var benchmark_prompt := """Você é o Agente ReAct Godot na IDE. O usuário iniciou o /benchmark.
-Sua tarefa é CRIAR e IMPLEMENTAR COMPLETA E OBRIGATORIAMENTE os seguintes jogos do zero:
+Sua tarefa é CRIAR, IMPLEMENTAR COMPLETA E OBRIGATORIAMENTE todos os 15 jogos a seguir:
 
-1. Pong Clássico:
-   - Leia as instruções em: res://games/pong/README.md
-   - Script: res://games/pong/pong.gd
-   - Cena: res://games/pong/pong.tscn
+1. pong (Crom Pong ReAct):
+   - Leia instruções em: res://games/pong/README.md
+   - Script: res://games/pong/pong.gd e Cena: res://games/pong/pong.tscn
+2. flappy (Flappy AI Bird):
+   - Leia instruções em: res://games/flappy/README.md
+   - Script: res://games/flappy/flappy.gd e Cena: res://games/flappy/flappy.tscn
+3. snake (Snake Cyber Grid):
+   - Leia instruções em: res://games/snake/README.md
+   - Script: res://games/snake/snake.gd e Cena: res://games/snake/snake.tscn
+4. breakout (Neon Breakout):
+   - Leia instruções em: res://games/breakout/README.md
+   - Script: res://games/breakout/breakout.gd e Cena: res://games/breakout/breakout.tscn
+5. space_invaders (Space AI Invaders):
+   - Leia instruções em: res://games/space_invaders/README.md
+   - Script: res://games/space_invaders/space_invaders.gd e Cena: res://games/space_invaders/space_invaders.tscn
+6. tetris (Block Matrix):
+   - Leia instruções em: res://games/tetris/README.md
+   - Script: res://games/tetris/tetris.gd e Cena: res://games/tetris/tetris.tscn
+7. platformer (Cyber Runner 2D):
+   - Leia instruções em: res://games/platformer/README.md
+   - Script: res://games/platformer/platformer.gd e Cena: res://games/platformer/platformer.tscn
+8. racing_topdown (Turbo Drift 2D):
+   - Leia instruções em: res://games/racing_topdown/README.md
+   - Script: res://games/racing_topdown/racing_topdown.gd e Cena: res://games/racing_topdown/racing_topdown.tscn
+9. tower_defense (AI Turret Defense):
+   - Leia instruções em: res://games/tower_defense/README.md
+   - Script: res://games/tower_defense/tower_defense.gd e Cena: res://games/tower_defense/tower_defense.tscn
+10. asteroid_shooter (Asteroid Blaster):
+    - Leia instruções em: res://games/asteroid_shooter/README.md
+    - Script: res://games/asteroid_shooter/asteroid_shooter.gd e Cena: res://games/asteroid_shooter/asteroid_shooter.tscn
+11. memory_puzzle (ReAct Memory Grid):
+    - Leia instruções em: res://games/memory_puzzle/README.md
+    - Script: res://games/memory_puzzle/memory_puzzle.gd e Cena: res://games/memory_puzzle/memory_puzzle.tscn
+12. flappy_3d (Flappy Cyber 3D):
+    - Leia instruções em: res://games/flappy_3d/README.md
+    - Script: res://games/flappy_3d/flappy_3d.gd e Cena: res://games/flappy_3d/flappy_3d.tscn
+13. rolling_ball_3d (Rolling Sphere 3D):
+    - Leia instruções em: res://games/rolling_ball_3d/README.md
+    - Script: res://games/rolling_ball_3d/rolling_ball_3d.gd e Cena: res://games/rolling_ball_3d/rolling_ball_3d.tscn
+14. isometric_shooter (Iso Mech Arena):
+    - Leia instruções em: res://games/isometric_shooter/README.md
+    - Script: res://games/isometric_shooter/isometric_shooter.gd e Cena: res://games/isometric_shooter/isometric_shooter.tscn
+15. raycaster_3d (Retro Raycaster 3D):
+    - Leia instruções em: res://games/raycaster_3d/README.md
+    - Script: res://games/raycaster_3d/raycaster_3d.gd e Cena: res://games/raycaster_3d/raycaster_3d.tscn
 
-2. Flappy Bird:
-   - Leia as instruções em: res://games/flappy/README.md
-   - Script: res://games/flappy/flappy.gd
-   - Cena: res://games/flappy/flappy.tscn
-
-REGRAS DE EXECUÇÃO IMPORTANTES:
+REGRAS DE EXECUÇÃO OBRIGATÓRIAS E VERIFICADOR:
 - Você deve ler o arquivo README.md de cada jogo ANTES de criá-los para seguir as especificações exatas.
 - Você deve gerar arquivos GDScript completos e funcionais.
 - Você deve gerar as cenas .tscn correspondentes para que os jogos apareçam no Arcade Hub.
-- NÃO finalize a execução com sua resposta final até ter criado com sucesso TODOS OS 4 ARQUIVOS acima.
-- Após criar cada um deles, liste o diretório ou verifique os arquivos para confirmar a criação.
+- Você DEVE rodar e testar cada cena usando a ferramenta 'play_scene' para validar o funcionamento correto.
+- Você DEVE realizar uma verificação final listando os diretórios para garantir que todos os 15 minijogos foram criados (com script .gd e cena .tscn correspondentes).
+- NÃO finaliza a execução ReAct até ter criado, verificado e testado com sucesso TODOS os 15 jogos acima no projeto!
 """
 		react_engine.send_user_prompt(benchmark_prompt)
 	else:
@@ -350,6 +393,7 @@ func _render_chat_log() -> void:
 	if not chat_log:
 		return
 	chat_log.clear()
+	_error_lut.clear()
 	
 	for i in range(_chat_history.size()):
 		var entry = _chat_history[i]
@@ -357,27 +401,34 @@ func _render_chat_log() -> void:
 		var text = entry["text"]
 		var expanded = entry.get("expanded", false)
 		
-		# Limpa emojis das mensagens normais do agente e do usuário para manter formal
 		var clean_text = _remove_emojis(text)
 		if role == "user" or role == "assistant":
 			clean_text = _format_badges(clean_text)
 			
+		var is_error = clean_text.to_lower().contains("erro") or clean_text.to_lower().contains("error") or clean_text.to_lower().contains("failed")
+		if is_error and role != "tool_call":
+			var err_idx = _error_lut.size()
+			_error_lut.append(clean_text)
+			clean_text += " [url=copy_to_input_%d][bgcolor=#c0392b][color=#ffffff] 🛠️ Corrigir [/color][/bgcolor][/url]" % err_idx
+			
 		match role:
 			"user":
-				chat_log.append_text("\n[color=#89dceb][b]Você:[/b][/color] " + clean_text + "\n")
+				chat_log.append_text("\n[color=#56b6c2][b]Você[/b][/color] \n" + clean_text + "\n")
+				chat_log.append_text("[color=#3e4452]────────────────────────────────────────────────[/color]\n")
 			"assistant":
-				chat_log.append_text("\n[color=#cba6f7][b]CromAgente:[/b][/color]\n" + clean_text + "\n")
+				chat_log.append_text("\n[color=#c678dd][b]CromAgente[/b][/color] \n" + clean_text + "\n")
+				chat_log.append_text("[color=#3e4452]────────────────────────────────────────────────[/color]\n")
 			"system":
-				chat_log.append_text("[color=#7f849c][i]" + clean_text + "[/i][/color]\n")
+				chat_log.append_text("[color=#5c6370][i]System: " + clean_text + "[/i][/color]\n")
 			"tool_call":
 				var tool_name = _extract_tool_name(clean_text)
 				if expanded:
-					chat_log.append_text("[url=toggle_%d]▼ [color=#f9e2af]%s[/color][/url]\n" % [i, tool_name])
+					chat_log.append_text("[url=toggle_%d][bgcolor=#282c34]  [color=#e5c07b]▼ %s[/color]  [/bgcolor][/url]\n" % [i, tool_name])
 				else:
-					chat_log.append_text("[url=toggle_%d]▶ [color=#a6e3a1]✓ %s[/color][/url]\n" % [i, tool_name])
+					chat_log.append_text("[url=toggle_%d][bgcolor=#282c34]  [color=#98c379]▶ %s[/color]  [/bgcolor][/url]\n" % [i, tool_name])
 			"tool_res":
 				if expanded:
-					chat_log.append_text("[bgcolor=#1e1e2e][color=#a8a8af]  " + clean_text + "[/color][/bgcolor]\n")
+					chat_log.append_text("[bgcolor=#1e1e2e][color=#abb2bf]  " + clean_text + "[/color][/bgcolor]\n")
 
 func _remove_emojis(s: String) -> String:
 	var emojis = ["🧑", "🤖", "✅", "❌", "🧹", "💾", "⚡", "👉", "🚀", "🏆", "⚠️", "💡", "🔐", "📡", "🌌", "⭐"]
@@ -398,7 +449,7 @@ func _format_badges(s: String) -> String:
 		var file_name = path.get_file()
 		if file_name == "":
 			file_name = path.get_base_dir().get_file() + "/"
-		var badge = "[bgcolor=#313244][color=#89b4fa][url=%s]%s[/url][/color][/bgcolor]" % [path, file_name]
+		var badge = "[bgcolor=#282c34][color=#61afef][url=%s] %s [/url][/color][/bgcolor]" % [path, file_name]
 		result = result.substr(0, m.get_start()) + badge + result.substr(m.get_end())
 	return result
 
@@ -427,6 +478,13 @@ func _on_chat_log_meta_clicked(meta: Variant) -> void:
 			if idx + 1 < _chat_history.size() and _chat_history[idx + 1]["role"] == "tool_res":
 				_chat_history[idx + 1]["expanded"] = not is_exp
 			_render_chat_log()
+	elif m_str.begins_with("copy_to_input_"):
+		var idx = int(m_str.trim_prefix("copy_to_input_"))
+		if idx >= 0 and idx < _error_lut.size():
+			var err_txt = _error_lut[idx]
+			if prompt_input:
+				prompt_input.text = "Ocorreu o seguinte erro ao executar: " + err_txt + ". Por favor, localize e corrija este erro."
+				prompt_input.grab_focus()
 	elif m_str.begins_with("res://") or m_str.begins_with("/home/"):
 		if Engine.is_editor_hint():
 			var ei = EditorInterface
@@ -598,3 +656,103 @@ func _find_command_processor() -> Node:
 		add_child(_cached_proc)
 		return _cached_proc
 	return null
+
+func _start_log_monitoring() -> void:
+	_log_timer = Timer.new()
+	_log_timer.wait_time = 1.0
+	_log_timer.autostart = true
+	_log_timer.timeout.connect(_check_godot_log)
+	add_child(_log_timer)
+	
+	var log_path = "user://logs/godot.log"
+	if FileAccess.file_exists(log_path):
+		var f = FileAccess.open(log_path, FileAccess.READ)
+		if f:
+			_last_log_size = f.get_length()
+			f.close()
+
+func _check_godot_log() -> void:
+	var log_path = "user://logs/godot.log"
+	if not FileAccess.file_exists(log_path):
+		return
+		
+	var f = FileAccess.open(log_path, FileAccess.READ)
+	if not f:
+		return
+		
+	var current_size = f.get_length()
+	if current_size > _last_log_size:
+		f.seek(_last_log_size)
+		var new_bytes = f.get_buffer(current_size - _last_log_size)
+		_last_log_size = current_size
+		f.close()
+		var new_content = new_bytes.get_string_from_utf8()
+		
+		if new_content.contains("SCRIPT ERROR:") or new_content.contains("GDScript backtrace") or new_content.contains("Parse Error:"):
+			var lines = new_content.split("\n")
+			var err_lines: Array[String] = []
+			var capturing = false
+			for line in lines:
+				var l_strip = line.strip_edges()
+				if l_strip.contains("SCRIPT ERROR:") or l_strip.contains("Parse Error:") or l_strip.contains("GDScript backtrace") or l_strip.contains("Redefined"):
+					capturing = true
+				if capturing:
+					err_lines.append(l_strip)
+					if err_lines.size() >= 5:
+						break
+			if not err_lines.is_empty():
+				var full_err = "\n".join(err_lines)
+				_show_error_popup(full_err)
+	else:
+		_last_log_size = current_size
+		f.close()
+
+func _show_error_popup(err_msg: String) -> void:
+	if not _error_popup:
+		_error_popup = ConfirmationDialog.new()
+		_error_popup.title = "CromAI - Erro Detectado"
+		_error_popup.get_ok_button().text = "Corrigir com CromAgente"
+		_error_popup.get_cancel_button().text = "Ignorar"
+		add_child(_error_popup)
+		_error_popup.confirmed.connect(func():
+			if prompt_input:
+				prompt_input.text = "Ocorreu o seguinte erro de script no projeto: " + _last_error_context + ". Por favor, analise a cena e corrija o script."
+				_on_send_pressed()
+		)
+	_last_error_context = err_msg
+	_error_popup.dialog_text = "Ocorreu o seguinte erro de execução no Godot:\n\n%s\n\nDeseja enviar esta pilha de erro para o CromAgente corrigir?" % err_msg
+	_error_popup.popup_centered()
+
+func _can_drop_data(_pos: Vector2, data: Variant) -> bool:
+	if data is Dictionary:
+		var type = data.get("type", "")
+		if type == "files" or type == "nodes" or type == "node_paths":
+			return true
+	return false
+
+func _drop_data(_pos: Vector2, data: Variant) -> void:
+	if data is Dictionary:
+		if data.has("files"):
+			var files = data["files"]
+			for f in files:
+				if prompt_input:
+					if prompt_input.text != "":
+						prompt_input.text += " "
+					prompt_input.text += str(f)
+			_append_to_log("[color=#61afef]✓ Contexto adicionado (Arquivo): %s[/color]" % str(files))
+		elif data.has("nodes"):
+			var nodes = data["nodes"]
+			for n in nodes:
+				if n is Node and prompt_input:
+					if prompt_input.text != "":
+						prompt_input.text += " "
+					prompt_input.text += n.name + " (" + n.get_class() + ")"
+			_append_to_log("[color=#61afef]✓ Contexto adicionado (Nó): %s[/color]" % str(nodes))
+		elif data.has("paths"):
+			var paths = data["paths"]
+			for p in paths:
+				if prompt_input:
+					if prompt_input.text != "":
+						prompt_input.text += " "
+					prompt_input.text += str(p)
+			_append_to_log("[color=#61afef]✓ Contexto adicionado (Caminho do Nó): %s[/color]" % str(paths))
