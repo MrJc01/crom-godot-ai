@@ -11,79 +11,79 @@ var monitor: Node
 
 var test_tasks: Array[Dictionary] = [
 	{
-		"id": "game_01_pong",
-		"name": "Pong Clássico",
-		"prompt": "Verifique o arquivo res://games/game_01_pong/pong.gd usando read_project_file. Se precisar de algum ajuste para o jogo rodar com perfeição, use modify_project_file. Em seguida confirme que o jogo está pronto para o teste de desempenho."
+		"id": "pong",
+		"name": "Crom Pong ReAct",
+		"prompt": "Use modify_project_file para criar o script completo res://games/pong/pong.gd e a cena res://games/pong/pong.tscn. O jogo deve ter raquetes para 2 jogadores (ou jogador contra IA básica), uma bolinha física que ricocheteia e placar."
 	},
 	{
-		"id": "game_02_snake",
-		"name": "Snake Grid",
-		"prompt": "Verifique o arquivo res://games/game_02_snake/snake.gd usando read_project_file. Se precisar de ajustes na grade ou nas maçãs, use modify_project_file e me avise."
+		"id": "flappy",
+		"name": "Flappy AI Bird",
+		"prompt": "Use modify_project_file para criar o script completo res://games/flappy/flappy.gd e a cena res://games/flappy/flappy.tscn com física simples de gravidade, pulo com clique e canos gerados proceduralmente como obstáculos."
 	},
 	{
-		"id": "game_03_flappy",
-		"name": "Flappy Bird Clone",
-		"prompt": "Verifique o arquivo res://games/game_03_flappy/flappy.gd com read_project_file. Certifique-se que usa res://assets/sprites/flappy_bird.svg e pipe.svg. Faça melhorias se necessário via modify_project_file."
+		"id": "snake",
+		"name": "Snake Cyber Grid",
+		"prompt": "Use modify_project_file para criar o script completo res://games/snake/snake.gd e a cena res://games/snake/snake.tscn implementando movimento em grade, comida que surge aleatoriamente e cauda que cresce."
 	},
 	{
-		"id": "game_04_breakout",
-		"name": "Breakout Arkanoid",
-		"prompt": "Use modify_project_file para criar o script completo res://games/game_04_breakout/breakout.gd. O jogo deve ter uma raquete controlada por teclado/mouse, uma bolinha com ricochete em paredes e raquete, e uma matriz 8x5 de tijolos destrutíveis em ColorRect. Depois crie a cena res://games/game_04_breakout/breakout.tscn se necessário."
+		"id": "breakout",
+		"name": "Neon Breakout",
+		"prompt": "Use modify_project_file para criar o script completo res://games/breakout/breakout.gd e a cena res://games/breakout/breakout.tscn com raquete, bolinha quicando e tijolos ColorRect destrutíveis."
 	},
 	{
-		"id": "game_05_space_invaders",
-		"name": "Space Invaders",
-		"prompt": "Use modify_project_file para criar o script res://games/game_05_space_invaders/space_invaders.gd utilizando o asset res://assets/sprites/invader.svg e res://assets/sprites/hero.svg. O jogo deve ter nave do jogador na base atirando projéteis e uma matriz 6x4 de invasores que se move de lado e desce."
+		"id": "space_invaders",
+		"name": "Space AI Invaders",
+		"prompt": "Use modify_project_file para criar o script completo res://games/space_invaders/space_invaders.gd e a cena res://games/space_invaders/space_invaders.tscn com nave de jogador atirando e grid de invasores se movendo lateralmente."
 	},
 	{
-		"id": "game_06_asteroids",
-		"name": "Asteroids Vetorial",
-		"prompt": "Use modify_project_file para criar o script res://games/game_06_asteroids/asteroids.gd com nave giratória em 360 graus, impulso vetorial em espaço toroidal (tela sem bordas) e asteroides que se dividem ao levar tiros."
+		"id": "tetris",
+		"name": "Block Matrix",
+		"prompt": "Use modify_project_file para criar o script completo res://games/tetris/tetris.gd e a cena res://games/tetris/tetris.tscn com grid 10x20, rotação de peças clássicas, queda automática e limpeza de linhas."
 	},
 	{
-		"id": "game_07_tetris",
-		"name": "Crom-Blocks Tetris",
-		"prompt": "Use modify_project_file para criar o script res://games/game_07_tetris/tetris.gd implementando matriz 10x20, rotação de peças (I, O, T, L, J, S, Z), detecção e limpeza de linhas completas e pontuação."
+		"id": "platformer",
+		"name": "Cyber Runner 2D",
+		"prompt": "Use modify_project_file para criar o script completo res://games/platformer/platformer.gd e a cena res://games/platformer/platformer.tscn com CharacterBody2D, controle de corrida/pulo com gravidade básica e chão sólido."
 	},
 	{
-		"id": "game_08_endless_runner",
-		"name": "Endless Dino Runner",
-		"prompt": "Use modify_project_file para criar o script res://games/game_08_endless_runner/runner.gd com rolagem de chão/obstáculos, salto com gravidade e pontuação crescente com o tempo."
+		"id": "racing_topdown",
+		"name": "Turbo Drift 2D",
+		"prompt": "Use modify_project_file para criar o script completo res://games/racing_topdown/racing_topdown.gd e a cena res://games/racing_topdown/racing_topdown.tscn com carro visto de cima, física simples de aceleração/derrapagem por teclado e pista."
 	},
 	{
-		"id": "game_09_topdown_dungeon",
-		"name": "Top-Down Dungeon",
-		"prompt": "Use modify_project_file para criar o script res://games/game_09_topdown_dungeon/dungeon.gd utilizando res://assets/sprites/hero.svg. Movimento em 4 direções (W/A/S/D), ataque de espada, e coleta de moedas (res://assets/sprites/coin.svg)."
+		"id": "tower_defense",
+		"name": "AI Turret Defense",
+		"prompt": "Use modify_project_file para criar o script completo res://games/tower_defense/tower_defense.gd e a cena res://games/tower_defense/tower_defense.tscn com caminho predefinido de inimigos e torres que atiram neles."
 	},
 	{
-		"id": "game_10_platformer",
-		"name": "Super Crom Bros Platformer",
-		"prompt": "Use modify_project_file para criar res://games/game_10_platformer/platformer.gd com gravidade, pulo com coyote time, plataformas sólidas e moedas para coletar."
+		"id": "asteroid_shooter",
+		"name": "Asteroid Blaster",
+		"prompt": "Use modify_project_file para criar o script completo res://games/asteroid_shooter/asteroid_shooter.gd e a cena res://games/asteroid_shooter/asteroid_shooter.tscn com nave no centro rotacionando em 360 graus e asteroides vindo de todas as direções."
 	},
 	{
-		"id": "game_11_tower_defense",
-		"name": "Tower Defense Mini",
-		"prompt": "Use modify_project_file para criar res://games/game_11_tower_defense/tower_defense.gd com um caminho predefinido onde inimigos se movem em fila e torres posicionadas atiram automaticamente em inimigos no raio de alcance."
+		"id": "memory_puzzle",
+		"name": "ReAct Memory Grid",
+		"prompt": "Use modify_project_file para criar o script completo res://games/memory_puzzle/memory_puzzle.gd e a cena res://games/memory_puzzle/memory_puzzle.tscn com grade de cartas viradas para baixo e lógica clássica de par correspondente."
 	},
 	{
-		"id": "game_12_clicker_idle",
-		"name": "Crom Tycoon Idle Clicker",
-		"prompt": "Use modify_project_file para criar res://games/game_12_clicker_idle/clicker.gd com botão de clique que gera moedas, multiplicadores de cliques automáticos por segundo (CPS) e formatação de números grandes."
+		"id": "flappy_3d",
+		"name": "Flappy Cyber 3D",
+		"prompt": "Use modify_project_file para criar o script completo res://games/flappy_3d/flappy_3d.gd e a cena res://games/flappy_3d/flappy_3d.tscn usando nós 3D, uma câmera 3D, gravidade simples e obstáculos 3D procedurais."
 	},
 	{
-		"id": "game_13_memory_match",
-		"name": "Card Memory Game",
-		"prompt": "Use modify_project_file para criar res://games/game_13_memory_match/memory.gd utilizando res://assets/sprites/card_back.svg e card_front_1 a 6.svg. Grade 4x3 com lógica de virar 2 cartas, checar par, travar se correto ou desvirar com delay."
+		"id": "rolling_ball_3d",
+		"name": "Rolling Sphere 3D",
+		"prompt": "Use modify_project_file para criar o script completo res://games/rolling_ball_3d/rolling_ball_3d.gd e a cena res://games/rolling_ball_3d/rolling_ball_3d.tscn com RigidBody3D de esfera controlado pelo jogador, plataformas 3D e luz."
 	},
 	{
-		"id": "game_14_raycaster",
-		"name": "2D/3D CPU Raycaster",
-		"prompt": "Use modify_project_file para criar res://games/game_14_raycaster/raycaster.gd implementando algoritmo de Raycasting DDA simples em matriz 2D, desenhando fatias verticais coloridas para simular visão 3D em primeira pessoa."
+		"id": "isometric_shooter",
+		"name": "Iso Mech Arena",
+		"prompt": "Use modify_project_file para criar o script completo res://games/isometric_shooter/isometric_shooter.gd e a cena res://games/isometric_shooter/isometric_shooter.tscn com câmera isométrica, personagem se movendo no plano e atirando em inimigos."
 	},
 	{
-		"id": "game_15_3d_rolling_ball",
-		"name": "3D Rolling Ball Physics",
-		"prompt": "Use modify_project_file para criar res://games/game_15_3d_rolling_ball/rolling_ball.gd com nós 3D puros (Camera3D, DirectionalLight3D, RigidBody3D em uma rampa/plataforma MeshInstance3D) permitindo rolar a esfera com W/A/S/D."
+		"id": "raycaster_3d",
+		"name": "Retro Raycaster 3D",
+		"prompt": "Use modify_project_file para criar o script completo res://games/raycaster_3d/raycaster_3d.gd e a cena res://games/raycaster_3d/raycaster_3d.tscn desenhando fatias verticais para criar visual pseudo-3D Wolfenstein no Godot."
 	}
 ]
 
@@ -120,6 +120,7 @@ func _initialize() -> void:
 	engine.react_finished.connect(_on_agent_finished_task)
 	engine.error_occurred.connect(_on_agent_error)
 	
+	await process_frame
 	_start_next_test_task()
 
 func _start_next_test_task() -> void:
@@ -135,7 +136,7 @@ func _start_next_test_task() -> void:
 		return
 		
 	var task = test_tasks[current_task_index]
-	print("\n>>> [AGENTE INICIANDO TESTE %d/15] %s (%s) <<<" % [current_task_index + 1, test_tasks.size(), task["name"], task["id"]])
+	print("\n>>> [AGENTE INICIANDO TESTE %d/15] %s (%s) <<<" % [current_task_index + 1, task["name"], task["id"]])
 	
 	# Envia prompt ao Agente
 	engine.send_user_prompt(task["prompt"])
@@ -147,9 +148,9 @@ func _on_agent_finished_task(final_answer: String) -> void:
 	print("\n[Agente Concluiu Tarefa %s]:\n%s" % [task["id"], final_answer.substr(0, 200)])
 	
 	# Garante que a cena exista
-	var tscn_path = "res://games/" + task["id"] + "/" + task["id"].split("_")[-1] + ".tscn"
+	var tscn_path = "res://games/" + task["id"] + "/" + task["id"] + ".tscn"
 	if not ResourceLoader.exists(tscn_path):
-		var gd_path = "res://games/" + task["id"] + "/" + task["id"].split("_")[-1] + ".gd"
+		var gd_path = "res://games/" + task["id"] + "/" + task["id"] + ".gd"
 		# Se não existir .tscn mas existir .gd, tenta instanciar via script ou criar cena básica
 		var s_res = load(gd_path)
 		if s_res:

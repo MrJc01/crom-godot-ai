@@ -39,14 +39,22 @@ func _build_dashboard() -> void:
 	
 	title_row.add_child(IconProvider.icon_rect("zap", 28, ThemeConstants.ACCENT_BLUE))
 	
+	var is_master := (ProjectSettings.globalize_path("res://").simplify_path() == "/home/j/Documentos/GitHub/crom-godot-ai")
+	
 	var title := Label.new()
-	title.text = "Bem-vindo ao CromAI Godot Bridge & Agente ReAct"
+	if is_master:
+		title.text = "Bem-vindo ao CromAI Godot Bridge & Agente ReAct"
+	else:
+		title.text = "CromAI Arcade Hub"
 	title.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_H1)
 	title.add_theme_color_override("font_color", ThemeConstants.TEXT_PRIMARY)
 	title_row.add_child(title)
 	
 	var subtitle := Label.new()
-	subtitle.text = "Uma arquitetura limpa e organizada para unificar inteligência artificial multimodal dentro do Godot com zero burocracia manual. Inspirado no VS Code, mas reimaginado como um hub de designer."
+	if is_master:
+		subtitle.text = "Uma arquitetura limpa e organizada para unificar inteligência artificial multimodal dentro do Godot com zero burocracia manual. Inspirado no VS Code, mas reimaginado como um hub de designer."
+	else:
+		subtitle.text = "Seu hub de jogos criados por IA. Selecione um dos minijogos na barra lateral ou use o agente de chat na IDE para gerar e testar novas experiências em tempo real."
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD
 	subtitle.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_BODY)
 	subtitle.add_theme_color_override("font_color", ThemeConstants.TEXT_SECONDARY)
@@ -59,29 +67,30 @@ func _build_dashboard() -> void:
 	grid.add_theme_constant_override("v_separation", ThemeConstants.SPACING_LG)
 	main_vbox.add_child(grid)
 	
-	# Card 1: Meus Projetos
-	var projects := ProjectService.list_projects()
-	var card_projects := DashboardCard.new(
-		"Meus Projetos",
-		"Gerencie e acesse seus projetos Godot.",
-		ThemeConstants.ACCENT_BLUE
-	)
-	card_projects.add_badge(StatBadge.info("%d projetos" % projects.size()))
-	card_projects.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var total_scenes := 0
-	var total_scripts := 0
-	for p in projects:
-		total_scenes += p.get("scenes", 0)
-		total_scripts += p.get("scripts", 0)
-	
-	var proj_row_1 := _icon_label_row("folder", "%d projetos instalados" % projects.size(), ThemeConstants.TEXT_PRIMARY)
-	card_projects.add_content_node(proj_row_1)
-	var proj_row_2 := _icon_label_row("monitor", "%d cenas  ·  %d scripts" % [total_scenes, total_scripts], ThemeConstants.TEXT_SECONDARY)
-	card_projects.add_content_node(proj_row_2)
-	if projects.size() > 0:
-		card_projects.add_content_label("Último: %s" % projects[0].get("display_name", "--"), ThemeConstants.TEXT_MUTED)
-	grid.add_child(card_projects)
+	# Card 1: Meus Projetos (Apenas no Master)
+	if is_master:
+		var projects := ProjectService.list_projects()
+		var card_projects := DashboardCard.new(
+			"Meus Projetos",
+			"Gerencie e acesse seus projetos Godot.",
+			ThemeConstants.ACCENT_BLUE
+		)
+		card_projects.add_badge(StatBadge.info("%d projetos" % projects.size()))
+		card_projects.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		
+		var total_scenes := 0
+		var total_scripts := 0
+		for p in projects:
+			total_scenes += p.get("scenes", 0)
+			total_scripts += p.get("scripts", 0)
+		
+		var proj_row_1 := _icon_label_row("folder", "%d projetos instalados" % projects.size(), ThemeConstants.TEXT_PRIMARY)
+		card_projects.add_content_node(proj_row_1)
+		var proj_row_2 := _icon_label_row("monitor", "%d cenas  ·  %d scripts" % [total_scenes, total_scripts], ThemeConstants.TEXT_SECONDARY)
+		card_projects.add_content_node(proj_row_2)
+		if projects.size() > 0:
+			card_projects.add_content_label("Último: %s" % projects[0].get("display_name", "--"), ThemeConstants.TEXT_MUTED)
+		grid.add_child(card_projects)
 	
 	# Card 2: Agente ReAct
 	var card_agent := DashboardCard.new(

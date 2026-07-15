@@ -176,7 +176,7 @@ func _init_services() -> void:
 	add_child(_playtest_svc)
 	var pt_page = _pages.get("playtest")
 	if pt_page and _engine:
-		_playtest_svc.setup(_engine, pt_page.get_viewport())
+		_playtest_svc.setup(_engine, pt_page.get_playtest_viewport())
 		_playtest_svc.playtest_finished.connect(func(game_id, report):
 			_log("[color=#a6e3a1]Playtest completo para %s[/color]" % game_id)
 			pt_page.show_playtest_report(report)

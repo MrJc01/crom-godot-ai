@@ -98,12 +98,16 @@ func _load_saved_config() -> void:
 			var prov_idx = int(cfg.get_value("ai", "provider_index", 0))
 			provider_option.select(prov_idx)
 			model_input.text = str(cfg.get_value("ai", "model", "google/gemini-2.5-flash"))
-			api_key_input.text = str(cfg.get_value("ai", "api_key", ""))
+			var key = str(cfg.get_value("ai", "api_key", ""))
+			if key.is_empty() or key == "null":
+				key = "sk-or-v1-key-removed-by-antigravity"
+			api_key_input.text = key
 			return
 			
 	# Padrão inicial conforme solicitado: google/gemini-2.5-flash ou ollama
 	provider_option.select(0)
 	model_input.text = "google/gemini-2.5-flash"
+	api_key_input.text = "sk-or-v1-key-removed-by-antigravity"
 
 func _save_and_apply_config() -> void:
 	var cfg = ConfigFile.new()
@@ -130,6 +134,10 @@ func _apply_config_to_engine() -> void:
 		react_engine.set_config(prov_str, model_input.text.strip_edges(), api_key_input.text.strip_edges())
 
 func _on_send_pressed(_text: String = "") -> void:
+	if react_engine and react_engine.is_busy:
+		react_engine.interrupt()
+		return
+		
 	var prompt = prompt_input.text.strip_edges()
 	if prompt == "":
 		return
@@ -158,8 +166,7 @@ func _on_send_pressed(_text: String = "") -> void:
 		pending_benchmark_confirm = false
 		_append_to_log("[color=#7f849c][i]Comando /benchmark cancelado.[/i][/color]")
 		
-	send_btn.disabled = true
-	prompt_input.editable = false
+	_disable_input()
 	
 	if react_engine and react_engine.has_method("send_user_prompt"):
 		react_engine.send_user_prompt(prompt)
@@ -185,20 +192,31 @@ func _clean_games_dir(path: String) -> void:
 func _run_live_agent_benchmark() -> void:
 	_append_to_log("\n[color=#f9e231][b]🚀 [CromAI ReAct Engine] Iniciando Verificação Funcional ao Vivo...[/b][/color]")
 	_append_to_log("[color=#89b4fa]A engine processará as cenas, injetando telemetria em tempo real.[/color]")
-	send_btn.disabled = true
-	prompt_input.editable = false
+	_disable_input()
+	
+	# Pre-criar diretórios vazios e README de base
+	var game_registry = load("res://addons/crom_ai/core/game_registry.gd")
+	if game_registry:
+		game_registry.setup_benchmark_directories()
+		_append_to_log("[color=#a6e3a1]Diretórios base e res://games/README.md criados com sucesso![/color]")
 	
 	if react_engine and react_engine.has_method("send_user_prompt"):
-		var benchmark_prompt = "Você é o Agente ReAct Godot na IDE. O usuário digitou /benchmark para um VÍDEO demonstrativo. Verifique e confirme o status funcional dos minijogos em res://games/ (como Pong e Flappy), demonstrando que estão prontos, e explique como eles operam a 60 FPS no Arcade Hub."
+		var benchmark_prompt = "Você é o Agente ReAct Godot na IDE. O usuário iniciou o /benchmark. Como os minijogos na pasta res://games/ estão vazios, sua tarefa é CRIAR e IMPLEMENTAR os minijogos Pong (res://games/pong/pong.tscn e script res://games/pong/pong.gd) e Flappy Bird (res://games/flappy/flappy.tscn e script res://games/flappy/flappy.gd) do zero! Use suas ferramentas para criar os nós, escrever o código GDScript e salvar as cenas. Certifique-se de que os minijogos fiquem funcionais para listar no Arcade Hub e, por fim, explique o funcionamento deles."
 		react_engine.send_user_prompt(benchmark_prompt)
 	else:
 		_append_to_log("[color=#f38ba8][Erro] NativeReActEngine indisponível.[/color]")
 		_enable_input()
 
 func _enable_input() -> void:
+	send_btn.text = "Enviar"
 	send_btn.disabled = false
 	prompt_input.editable = true
 	prompt_input.grab_focus()
+
+func _disable_input() -> void:
+	send_btn.text = "Interromper"
+	send_btn.disabled = false
+	prompt_input.editable = false
 
 func _on_agent_message_added(role: String, text: String) -> void:
 	match role:

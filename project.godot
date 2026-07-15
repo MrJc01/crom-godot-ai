@@ -13,7 +13,7 @@ config_version=5
 config/name="CromAI Godot Bridge"
 config/description="Engine Inteligente interligada por MCP e WebSockets para Agentes IA criarem, editarem e jogarem no Godot."
 run/main_scene="res://addons/crom_ai/ui/hub_controller.tscn"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.6", "Compatibility")
 boot_splash/show_image=false
 config/icon="res://icon.svg"
 
@@ -38,3 +38,9 @@ enabled=PackedStringArray("res://addons/crom_ai/plugin.cfg")
 [network]
 
 limits/websocket_server/max_connections=4
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+

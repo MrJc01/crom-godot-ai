@@ -48,6 +48,8 @@ var input_project_name: LineEdit
 var input_api_key: LineEdit
 var input_model_name: LineEdit
 
+var is_master := (ProjectSettings.globalize_path("res://").simplify_path() == "/home/j/Documentos/GitHub/crom-godot-ai")
+
 # Estado e Motores ReAct / Telemetria
 var current_view: String = "home"
 var monitor: Node
@@ -77,8 +79,11 @@ func _ready() -> void:
 	_build_vs_code_layout()
 	_init_agent_and_monitor()
 	
-	# Inicia na Página Inicial com Informações Relevantes
-	_set_view("home")
+	# Inicia na Página Inicial se for master, senão abre direto os jogos
+	if is_master:
+		_set_view("home")
+	else:
+		_set_view("games")
 
 # ==============================================================================
 # CONSTRUÇÃO DO LAYOUT 5 ZONAS (ACTIVITY BAR + SIDEBAR + CANVAS + PANEL + RODAPÉ)
@@ -108,7 +113,8 @@ func _build_vs_code_layout() -> void:
 	activity_panel.add_child(activity_vbox)
 	
 	_add_activity_btn("🏠", "Página Inicial (Informações Relevantes)", func(): _set_view("home"))
-	_add_activity_btn("📁", "Projetos (Lista & Criar Novo)", func(): _set_view("projects"))
+	if is_master:
+		_add_activity_btn("📁", "Projetos (Lista & Criar Novo)", func(): _set_view("projects"))
 	_add_activity_btn("🎮", "Suíte de 15 Minijogos", func(): _set_view("games"))
 	_add_activity_btn("⚙️", "Configurações IA e MCP", func(): _set_view("settings"))
 	

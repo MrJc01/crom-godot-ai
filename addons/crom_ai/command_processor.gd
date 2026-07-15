@@ -50,6 +50,9 @@ func process_command(command_json: String) -> Dictionary:
 			return _read_project_file(params)
 		"modify_project_file":
 			return _modify_project_file(params)
+		"list_project_dir":
+			return _list_project_dir(params)
+			
 			
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
@@ -242,10 +245,11 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	if gdscript_code == "":
 		return { "status": "error", "message": "O código 'gdscript_code' não pode ser vazio." }
 		
-	# Garante pasta scripts
-	var dir = DirAccess.open("res://")
-	if not dir.dir_exists("scripts"):
-		dir.make_dir("scripts")
+	# Criar diretórios pai se não existirem
+	var parent_dir := script_path.get_base_dir()
+	if parent_dir != "" and parent_dir != "res://":
+		if not DirAccess.dir_exists_absolute(parent_dir):
+			DirAccess.make_dir_recursive_absolute(parent_dir)
 		
 	var file = FileAccess.open(script_path, FileAccess.WRITE)
 	if not file:
@@ -255,8 +259,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	file.close()
 	
 	# Força recarregamento do recurso no editor
-	if editor_plugin and editor_plugin.get_editor_interface():
-		editor_plugin.get_editor_interface().get_resource_filesystem().scan()
+	_refresh_editor_filesystem()
 		
 	var loaded_script = load(script_path)
 	if not loaded_script:
@@ -346,11 +349,53 @@ func _modify_project_file(params: Dictionary) -> Dictionary:
 	var content: String = str(params.get("new_content", ""))
 	if path == "":
 		return { "status": "error", "message": "Caminho de arquivo inválido." }
+	# Criar diretórios pai se não existirem
+	var parent_dir := path.get_base_dir()
+	if parent_dir != "" and parent_dir != "res://":
+		if not DirAccess.dir_exists_absolute(parent_dir):
+			DirAccess.make_dir_recursive_absolute(parent_dir)
+			
 	var f = FileAccess.open(path, FileAccess.WRITE)
 	if not f:
 		return { "status": "error", "message": "Falha ao salvar arquivo em: " + path }
 	f.store_string(content)
 	f.close()
-	if editor_plugin and editor_plugin.get_resource_filesystem():
-		editor_plugin.get_resource_filesystem().scan()
+	_refresh_editor_filesystem()
 	return { "status": "success", "message": "Arquivo atualizado com sucesso: " + path }
+
+func _list_project_dir(params: Dictionary) -> Dictionary:
+	var path: String = str(params.get("dir_path", "res://"))
+	if not DirAccess.dir_exists_absolute(path):
+		return { "status": "error", "message": "Diretório não encontrado: " + path }
+	var dir = DirAccess.open(path)
+	if not dir:
+		return { "status": "error", "message": "Não foi possível abrir o diretório: " + path }
+	
+	var files := []
+	var directories := []
+	
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "":
+		if file_name != "." and file_name != "..":
+			if dir.current_is_dir():
+				directories.append(file_name)
+			else:
+				files.append(file_name)
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	
+	return {
+		"status": "success",
+		"dir_path": path,
+		"files": files,
+		"directories": directories
+	}
+
+func _refresh_editor_filesystem() -> void:
+	if Engine.is_editor_hint():
+		var ef = EditorInterface.get_resource_filesystem()
+		if ef:
+			ef.scan()
+			ef.scan_sources()
+

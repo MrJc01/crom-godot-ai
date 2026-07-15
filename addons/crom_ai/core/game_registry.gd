@@ -51,3 +51,26 @@ static func is_available(id: String) -> bool:
 	if g.is_empty():
 		return false
 	return FileAccess.file_exists(g["tscn"])
+
+static func setup_benchmark_directories() -> void:
+	if not DirAccess.dir_exists_absolute("res://games"):
+		DirAccess.make_dir_recursive_absolute("res://games")
+		
+	if not DirAccess.dir_exists_absolute("res://benchmark"):
+		DirAccess.make_dir_recursive_absolute("res://benchmark")
+		var master_bench := "/home/j/Documentos/GitHub/crom-godot-ai/benchmark"
+		if DirAccess.dir_exists_absolute(master_bench):
+			OS.execute("cp", ["-rf", master_bench + "/.", ProjectSettings.globalize_path("res://benchmark/")])
+			
+	# Criar pastas para cada jogo listado no registry
+	for g in _games:
+		var sub_path = "res://games/" + g["id"]
+		if not DirAccess.dir_exists_absolute(sub_path):
+			DirAccess.make_dir_recursive_absolute(sub_path)
+			
+	# Criar README.md com instruções completas
+	var f := FileAccess.open("res://games/README.md", FileAccess.WRITE)
+	if f:
+		f.store_string("# CromAI Benchmark - 15 Jogos procedurais\n\nEste diretório contém o ambiente para os minijogos procedurais do CromAI Hub. O Agente ReAct deve criar as cenas (.tscn) e scripts (.gd) para cada jogo conforme listado abaixo:\n\n1. **pong** (res://games/pong/pong.tscn)\n2. **flappy** (res://games/flappy/flappy.tscn)\n3. **snake** (res://games/snake/snake.tscn)\n4. **breakout** (res://games/breakout/breakout.tscn)\n5. **space_invaders** (res://games/space_invaders/space_invaders.tscn)\n6. **tetris** (res://games/tetris/tetris.tscn)\n7. **platformer** (res://games/platformer/platformer.tscn)\n8. **racing_topdown** (res://games/racing_topdown/racing_topdown.tscn)\n9. **tower_defense** (res://games/tower_defense/tower_defense.tscn)\n10. **asteroid_shooter** (res://games/asteroid_shooter/asteroid_shooter.tscn)\n11. **memory_puzzle** (res://games/memory_puzzle/memory_puzzle.tscn)\n12. **flappy_3d** (res://games/flappy_3d/flappy_3d.tscn)\n13. **rolling_ball_3d** (res://games/rolling_ball_3d/rolling_ball_3d.tscn)\n14. **isometric_shooter** (res://games/isometric_shooter/isometric_shooter.tscn)\n15. **raycaster_3d** (res://games/raycaster_3d/raycaster_3d.tscn)\n")
+		f.close()
+

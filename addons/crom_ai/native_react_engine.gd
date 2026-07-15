@@ -21,13 +21,14 @@ var api_key: String = ""
 var messages: Array = []
 var is_busy: bool = false
 var current_iterations: int = 0
-var max_iterations: int = 20
+var max_iterations: int = 99999
 
 func _init(processor: Node = null) -> void:
 	command_processor = processor
 
 func _ready() -> void:
 	http_request = HTTPRequest.new()
+	http_request.timeout = 30.0
 	add_child(http_request)
 	http_request.request_completed.connect(_on_http_request_completed)
 	
@@ -65,6 +66,7 @@ func send_user_prompt(user_text: String) -> void:
 		
 	if not http_request:
 		http_request = HTTPRequest.new()
+		http_request.timeout = 30.0
 		add_child(http_request)
 		http_request.request_completed.connect(_on_http_request_completed)
 		
@@ -77,6 +79,15 @@ func send_user_prompt(user_text: String) -> void:
 	})
 	emit_signal("message_added", "user", user_text)
 	_step_react_loop()
+
+func interrupt() -> void:
+	if is_busy:
+		is_busy = false
+		if http_request:
+			http_request.cancel_request()
+		var msg = "Execução interrompida pelo usuário."
+		emit_signal("message_added", "system", msg)
+		emit_signal("react_finished", msg)
 
 func _step_react_loop() -> void:
 	if current_iterations >= max_iterations:
@@ -305,6 +316,20 @@ func _get_tools_definition() -> Array:
 						"file_path": {"type": "string", "description": "Caminho do arquivo (ex: res://scenes/main.gd)"}
 					},
 					"required": ["file_path"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "list_project_dir",
+				"description": "Lista os arquivos e subdiretórios localizados em uma determinada pasta do projeto res://.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"dir_path": {"type": "string", "description": "Caminho do diretório (ex: res://games)"}
+					},
+					"required": ["dir_path"]
 				}
 			}
 		},

@@ -46,17 +46,51 @@ static func create_project(project_name: String) -> String:
 	
 	# Criar diretórios
 	DirAccess.make_dir_recursive_absolute(dest + "/addons")
-	DirAccess.make_dir_recursive_absolute(dest + "/benchmark")
 	
-	# Copiar plugin CromAI + benchmark do projeto master
+	# Copiar plugin CromAI do projeto master
 	var addons_src := MASTER_PROJECT_PATH + "/addons/crom_ai"
-	var bench_src := MASTER_PROJECT_PATH + "/benchmark"
 	if DirAccess.dir_exists_absolute(addons_src):
 		OS.execute("cp", ["-rf", addons_src, dest + "/addons/"])
-	if DirAccess.dir_exists_absolute(bench_src):
-		OS.execute("cp", ["-rf", bench_src + "/.", dest + "/benchmark/"])
 	if FileAccess.file_exists(MASTER_PROJECT_PATH + "/icon.svg"):
 		OS.execute("cp", ["-f", MASTER_PROJECT_PATH + "/icon.svg", dest + "/icon.svg"])
+	
+	# Criar cena vazia/padrão res://main.tscn e script res://main.gd no novo projeto
+	var main_gd_content := "extends Node2D\n\nfunc _ready() -> void:\n\tprint(\"Seu novo projeto Godot com CromAI está pronto!\")\n"
+	var f_gd := FileAccess.open(dest + "/main.gd", FileAccess.WRITE)
+	if f_gd:
+		f_gd.store_string(main_gd_content)
+		f_gd.close()
+		
+	var main_tscn_content := """[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Label" type="Label" parent="CanvasLayer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -20.0
+offset_right = 200.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 24
+text = "Bem-vindo ao seu Novo Jogo!"
+horizontal_alignment = 1
+vertical_alignment = 1
+"""
+	var f_tscn := FileAccess.open(dest + "/main.tscn", FileAccess.WRITE)
+	if f_tscn:
+		f_tscn.store_string(main_tscn_content)
+		f_tscn.close()
 	
 	# Gerar project.godot pré-configurado
 	var cfg := """; Engine configuration file.
@@ -64,8 +98,8 @@ config_version=5
 
 [application]
 config/name="%s"
-run/main_scene="res://addons/crom_ai/ui/hub_controller.tscn"
-config/features=PackedStringArray("4.6", "Forward Plus")
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6", "Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -79,6 +113,10 @@ window/size/viewport_width=1152
 window/size/viewport_height=648
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 """ % project_name
 	
 	var f := FileAccess.open(dest + "/project.godot", FileAccess.WRITE)

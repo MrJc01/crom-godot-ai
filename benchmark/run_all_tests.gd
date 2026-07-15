@@ -5,21 +5,21 @@ extends SceneTree
 # ==============================================================================
 
 var game_paths: Array[String] = [
-	"res://games/game_01_pong/pong.tscn",
-	"res://games/game_02_snake/snake.tscn",
-	"res://games/game_03_flappy/flappy.tscn",
-	"res://games/game_04_breakout/breakout.tscn",
-	"res://games/game_05_space_invaders/space_invaders.tscn",
-	"res://games/game_06_asteroids/asteroids.tscn",
-	"res://games/game_07_tetris/tetris.tscn",
-	"res://games/game_08_endless_runner/runner.tscn",
-	"res://games/game_09_topdown_dungeon/dungeon.tscn",
-	"res://games/game_10_platformer/platformer.tscn",
-	"res://games/game_11_tower_defense/tower_defense.tscn",
-	"res://games/game_12_clicker_idle/clicker.tscn",
-	"res://games/game_13_memory_match/memory.tscn",
-	"res://games/game_14_raycaster/raycaster.tscn",
-	"res://games/game_15_3d_rolling_ball/rolling_ball.tscn"
+	"res://games/pong/pong.tscn",
+	"res://games/flappy/flappy.tscn",
+	"res://games/snake/snake.tscn",
+	"res://games/breakout/breakout.tscn",
+	"res://games/space_invaders/space_invaders.tscn",
+	"res://games/tetris/tetris.tscn",
+	"res://games/platformer/platformer.tscn",
+	"res://games/racing_topdown/racing_topdown.tscn",
+	"res://games/tower_defense/tower_defense.tscn",
+	"res://games/asteroid_shooter/asteroid_shooter.tscn",
+	"res://games/memory_puzzle/memory_puzzle.tscn",
+	"res://games/flappy_3d/flappy_3d.tscn",
+	"res://games/rolling_ball_3d/rolling_ball_3d.tscn",
+	"res://games/isometric_shooter/isometric_shooter.tscn",
+	"res://games/raycaster_3d/raycaster_3d.tscn"
 ]
 
 var current_index: int = 0
