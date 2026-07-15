@@ -42,6 +42,14 @@ func process_command(command_json: String) -> Dictionary:
 			return _stop_scene()
 		"simulate_editor_input":
 			return _simulate_editor_input(params)
+		"capture_screenshot":
+			return _capture_screenshot(params)
+		"get_open_editor_context":
+			return _get_open_editor_context()
+		"read_project_file":
+			return _read_project_file(params)
+		"modify_project_file":
+			return _modify_project_file(params)
 			
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
@@ -292,3 +300,57 @@ func _simulate_editor_input(params: Dictionary) -> Dictionary:
 	Input.parse_input_event(ev)
 	
 	return { "status": "success", "message": "Input de ação '%s' (pressed: %s) simulado." % [action_name, str(pressed)] }
+
+func _capture_screenshot(_params: Dictionary) -> Dictionary:
+	var vp = get_viewport()
+	if editor_plugin and editor_plugin.get_editor_interface():
+		vp = editor_plugin.get_editor_interface().get_base_control().get_viewport()
+	if not vp:
+		return { "status": "error", "message": "Viewport não encontrado para captura." }
+	var img = vp.get_texture().get_image()
+	if not img:
+		return { "status": "error", "message": "Falha ao obter imagem do viewport." }
+	img.resize(640, 360) # Redimensiona para economizar tokens
+	var buffer = img.save_png_to_buffer()
+	var b64 = Marshalls.raw_to_base64(buffer)
+	return { "status": "success", "image_base64": b64, "format": "png" }
+
+func _get_open_editor_context() -> Dictionary:
+	var res = { "status": "success", "open_scripts": [], "edited_scene": "", "selected_nodes": [] }
+	if editor_plugin and editor_plugin.get_editor_interface():
+		var ei = editor_plugin.get_editor_interface()
+		if ei.get_script_editor():
+			for sc in ei.get_script_editor().get_open_scripts():
+				if sc and sc.resource_path != "":
+					res["open_scripts"].append(sc.resource_path)
+		var root = ei.get_edited_scene_root()
+		if root and root.scene_file_path != "":
+			res["edited_scene"] = root.scene_file_path
+		if ei.get_selection():
+			for node in ei.get_selection().get_selected_nodes():
+				res["selected_nodes"].append(str(node.name) + " (" + str(node.get_class()) + ")")
+	return res
+
+func _read_project_file(params: Dictionary) -> Dictionary:
+	var path: String = str(params.get("file_path", ""))
+	if not FileAccess.file_exists(path):
+		return { "status": "error", "message": "Arquivo não encontrado: " + path }
+	var f = FileAccess.open(path, FileAccess.READ)
+	if not f:
+		return { "status": "error", "message": "Não foi possível abrir o arquivo: " + path }
+	var content = f.get_as_text()
+	return { "status": "success", "file_path": path, "content": content }
+
+func _modify_project_file(params: Dictionary) -> Dictionary:
+	var path: String = str(params.get("file_path", ""))
+	var content: String = str(params.get("new_content", ""))
+	if path == "":
+		return { "status": "error", "message": "Caminho de arquivo inválido." }
+	var f = FileAccess.open(path, FileAccess.WRITE)
+	if not f:
+		return { "status": "error", "message": "Falha ao salvar arquivo em: " + path }
+	f.store_string(content)
+	f.close()
+	if editor_plugin and editor_plugin.get_resource_filesystem():
+		editor_plugin.get_resource_filesystem().scan()
+	return { "status": "success", "message": "Arquivo atualizado com sucesso: " + path }

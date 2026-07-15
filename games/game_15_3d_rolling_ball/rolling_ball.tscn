@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://games/game_15_3d_rolling_ball/rolling_ball.gd" id="1_script"]
+
+[node name="RollingBall" type="Node3D"]
+script = ExtResource("1_script")

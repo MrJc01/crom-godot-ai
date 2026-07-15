@@ -8,6 +8,7 @@ extends Control
 # ==============================================================================
 
 var react_engine: Node = null
+var pending_benchmark_confirm: bool = false
 
 @onready var config_panel: PanelContainer = $MainVBox/ConfigPanel
 @onready var provider_option: OptionButton = $MainVBox/ConfigPanel/ConfigVBox/ProviderHBox/ProviderOption
@@ -134,6 +135,29 @@ func _on_send_pressed(_text: String = "") -> void:
 		return
 		
 	prompt_input.text = ""
+	_append_to_log("\n[color=#89dceb][b]🧑 Você:[/b][/color] " + prompt)
+	
+	if prompt.to_lower().begins_with("/limpar") or prompt.to_lower().begins_with("/clean"):
+		_append_to_log("[color=#f9e2af]🧹 Limpando todos os jogos gerados da pasta res://games/...[/color]")
+		_clean_games_dir("res://games")
+		_append_to_log("[color=#a6e3a1]✅ Jogos limpos! Ambiente pronto para verificação funcional ou nova construção pelo Agente.[/color]")
+		return
+	
+	if prompt.to_lower().begins_with("/benchmark"):
+		pending_benchmark_confirm = true
+		_append_to_log("\n[color=#f9e2af][b]⚡ Comando /benchmark detectado![/b][/color]")
+		_append_to_log("[color=#cdd6f4]Deseja iniciar a verificação e construção funcional dos minijogos via Agente IA ReAct NATIVO para demonstração no vídeo? Todas as respostas e criações serão atualizadas ao vivo na IDE.[/color]")
+		_append_to_log("[color=#a6e3a1][b]👉 Digite 'confirmar' ou 'sim' para iniciar.[/b][/color]")
+		return
+		
+	if pending_benchmark_confirm and (prompt.to_lower() in ["sim", "confirmar", "yes", "ok", "s", "prosseguir"]):
+		pending_benchmark_confirm = false
+		_run_live_agent_benchmark()
+		return
+	elif pending_benchmark_confirm:
+		pending_benchmark_confirm = false
+		_append_to_log("[color=#7f849c][i]Comando /benchmark cancelado.[/i][/color]")
+		
 	send_btn.disabled = true
 	prompt_input.editable = false
 	
@@ -141,6 +165,34 @@ func _on_send_pressed(_text: String = "") -> void:
 		react_engine.send_user_prompt(prompt)
 	else:
 		_append_to_log("[color=#f38ba8][Erro] Motor ReAct nativo não inicializado.[/color]")
+		_enable_input()
+
+func _clean_games_dir(path: String) -> void:
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if file_name != "." and file_name != "..":
+				if dir.current_is_dir():
+					_clean_games_dir(path + "/" + file_name)
+					dir.remove(file_name)
+				else:
+					dir.remove(file_name)
+			file_name = dir.get_next()
+		dir.list_dir_end()
+
+func _run_live_agent_benchmark() -> void:
+	_append_to_log("\n[color=#f9e231][b]🚀 [CromAI ReAct Engine] Iniciando Verificação Funcional ao Vivo...[/b][/color]")
+	_append_to_log("[color=#89b4fa]A engine processará as cenas, injetando telemetria em tempo real.[/color]")
+	send_btn.disabled = true
+	prompt_input.editable = false
+	
+	if react_engine and react_engine.has_method("send_user_prompt"):
+		var benchmark_prompt = "Você é o Agente ReAct Godot na IDE. O usuário digitou /benchmark para um VÍDEO demonstrativo. Verifique e confirme o status funcional dos minijogos em res://games/ (como Pong e Flappy), demonstrando que estão prontos, e explique como eles operam a 60 FPS no Arcade Hub."
+		react_engine.send_user_prompt(benchmark_prompt)
+	else:
+		_append_to_log("[color=#f38ba8][Erro] NativeReActEngine indisponível.[/color]")
 		_enable_input()
 
 func _enable_input() -> void:

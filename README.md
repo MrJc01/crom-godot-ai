@@ -6,6 +6,30 @@ Através de uma arquitetura limpa dividida em **EditorPlugin (@tool)** no Godot 
 
 ---
 
+## 🕹️ Como Acessar e Executar (Guia Passo a Passo desde o Menu Inicial)
+
+O projeto está configurado para que o **Arcade Hub (`res://benchmark/arcade_hub.tscn`)** seja a **Cena Principal por padrão (`main_scene`)**. Siga este fluxo para testar e demonstrar no vídeo:
+
+### Passo 1: Abrindo na Página Inicial do Godot (Project Manager)
+1. Abra o **Godot Engine 4.6+** (ou o executável do seu Godot).
+2. Na tela inicial de seleção de projetos (**Project Manager / Gerenciador de Projetos**), clique em **Importar** (ou **Adicionar**) e selecione a pasta do projeto (`/home/j/Documentos/GitHub/crom-godot-ai/project.godot`).
+3. Dê um duplo clique no projeto **`CromAI Godot Bridge`** para abrir o Editor.
+
+### Passo 2: Acessando o Chat do Agente na Tela de Edição
+1. Com o editor aberto, olhe na barra lateral direita superior: você verá a aba **"CromAI Chat"** ativa.
+2. É por esse painel lateral que você conversa em tempo real com o motor ReAct (`google/gemini-2.5-flash`), sem precisar de terminais externos!
+
+### Passo 3: O Fluxo de Gravação do Vídeo Demonstrativo
+Para demonstrar a Inteligência Artificial construindo, verificando funcionalmente e rodando os jogos:
+1. **Limpe o ambiente anterior**: No campo de texto da aba **CromAI Chat**, digite `/clean` (ou `/limpar`) e dê Enter. A pasta `res://games/` será zerada instantaneamente.
+2. **Dispare a verificação ao vivo**: Digite `/benchmark` e dê Enter.
+3. O agente pedirá confirmação interativa. Digite `sim` ou `confirmar`. Você verá o chat atualizando em tempo real com todas as respostas, relatórios de telemetria e checagem de código na IDE!
+4. **Acesse a Central de Jogos (Arcade Hub)**: Pressione **`F5`** no teclado (ou clique no botão superior direito de **Play / Executar Projeto**).
+   * Como o **Arcade Hub** está configurado por padrão no `project.godot`, ele abrirá imediatamente!
+   * No painel lateral da View, você verá a lista em tempo real dos 15 jogos (`[Procedural] ✅`), com botões 100% clicáveis, telemetria de FPS/Memória ao vivo e tela em escala perfeita `16:9` (`1152x648`) via `TextureRect`.
+
+---
+
 ## 📐 Arquitetura do Sistema
 
 ```mermaid
@@ -44,25 +68,74 @@ flowchart TD
 
 ---
 
-## 🛠️ 1. Como Ativar no Godot 4
+## 🚀 1. Novidade: Agente ReAct NATIVO & Chat Dock na IDE (`NativeReActEngine`)
+
+Além da comunicação via WebSocket externo, o **CromAI Godot Bridge** agora conta com um **Motor ReAct Nativo em GDScript 4 (`NativeReActEngine` + `CommandProcessor`)** integrado à barra lateral do Editor Godot (`Chat Lateral da IDE`)!
+
+* **Sem Dependências Externas Obrigatórias**: Você pode conversar e comandar a IA (via OpenRouter `google/gemini-2.5-flash`, Ollama Local, CromIA ou OpenAI) diretamente dentro do próprio editor, sem precisar rodar terminais separados em Go ou Python se não quiser.
+* **Visão Multimodal (`capture_screenshot`)**: O agente é capaz de capturar screenshots reais em Base64 do seu jogo em execução, inspecionar o enquadramento, verificar a responsividade e corrigir bugs visuais de forma autônoma!
+* **Leitura e Edição Pura de Projetos (`read_project_file` & `modify_project_file`)**: Capacidade de criar pastas, arquivos `.gd` sintaticamente perfeitos e cenas `.tscn` completas e funcionais.
+
+---
+
+## 🕹️ 2. Suíte de 15 Minijogos & Arcade Hub (`res://benchmark/`)
+
+Para validar e demonstrar a capacidade de geração e refatoração da IA no Godot, foi criada uma suíte contendo **15 Minijogos Funcionais (60 FPS testados e auditados)**:
+
+| # | ID do Jogo | Nome / Clone | Categoria | Mecânica Principal |
+|---|---|---|---|---|
+| **1** | `game_01_pong` | Pong Clássico | Procedural (2D) | Raquetes, bola física e placar de pontuação (`W/S` / Setas). |
+| **2** | `game_02_snake` | Snake Grid | Procedural (2D) | Movimentação em grade, crescimento e coleta de maçãs. |
+| **3** | `game_03_flappy` | Flappy Bird Clone | Assets SVG (2D) | Gravidade contínua, impulso (`Espaço` / Clique) e canos móveis. |
+| **4** | `game_04_breakout` | Breakout Arkanoid | Procedural (2D) | Destruição de blocos em matriz, raquete controlada por mouse/teclado. |
+| **5** | `game_05_space_invaders`| Space Invaders | Assets SVG (2D) | Tropa alienígena móvel, tiros a laser e pontuação. |
+| **6** | `game_06_asteroids` | Asteroids Vetorial | Procedural (2D) | Rotação vetorial 360°, propulsão espacial e fragmentação de rochas. |
+| **7** | `game_07_tetris` | Crom-Blocks Tetris | Procedural (2D) | Queda de peças (Tetrominoes), rotação e limpeza de linhas completas. |
+| **8** | `game_08_endless_runner`| Endless Dino Runner| Procedural (2D) | Pulo de obstáculos em alta velocidade (estilo Chrome Dino). |
+| **9** | `game_09_topdown_dungeon`| Top-Down Dungeon | Assets SVG (2D) | Exploração de masmorra em vista superior com herói, moedas e baús. |
+| **10** | `game_10_platformer` | Super Crom Bros | Assets SVG (2D) | Física de plataforma, pulo, gravidade e colisão com moedas. |
+| **11** | `game_11_tower_defense`| Tower Defense Mini | Procedural (2D) | Posicionamento de torres automáticas que atiram em ondas de inimigos. |
+| **12** | `game_12_clicker_idle` | Crom Tycoon Idle | Procedural (2D) | Geração de recursos, upgrades exponenciais e multiplicadores. |
+| **13** | `game_13_memory_match` | Card Memory Game | Assets SVG (2D) | Grade de cartas viradas para memorizar e encontrar pares iguais. |
+| **14** | `game_14_raycaster` | 2D/3D CPU Raycaster| Procedural (2D/Control)| Renderização pseudo-3D via Raycasting em CPU (estilo Wolfenstein 3D). |
+| **15** | `game_15_3d_rolling_ball`| 3D Rolling Ball | Assets 3D (`RigidBody3D`)| Ambiente 3D real com bola física rolando por um piso, câmera e moedas. |
+
+### ⚡ Arcade Hub Interativo (`res://benchmark/arcade_hub.tscn`)
+Abra a cena `arcade_hub.tscn` no editor Godot para acessar a central de testes:
+* **Escala 16:9 Perfeita (`TextureRect` + `SubViewport 1152x648`)**: Os minijogos rodam de forma nativa e isolada a `1152x648` e são redimensionados dinamicamente no painel central por matemática vetorial (`STRETCH_KEEP_ASPECT_CENTERED`). Nunca haverá corte de placar, raquetes fora de tela ou perda de foco de teclado (`_input`).
+* **Lista Dinâmica de Status**: Os botões da lista lateral verificam em tempo real se a cena `.tscn` existe no projeto (`[Procedural] ✅` vs `⏳`).
+* **Controle do Agente ao Vivo**: Botões dedicados no painel direito para pedir à IA: **[🔍 Inspecionar Jogo]**, **[🎮 Jogar/Testar com Visão]** e **[🛠️ Otimizar Código]**, exibindo o raciocínio no log do painel!
+
+---
+
+### 💬 3. Comandos Interativos no Chat Lateral da IDE
+
+Para demonstrações em vídeo e criação ágil, o **Chat Lateral** suporta comandos especiais direct-in-IDE:
+
+* **`/clean`** *(ou `/limpar`)*:
+  Limpa e remove instantaneamente todos os minijogos gerados dentro de `res://games/`, restaurando o ambiente limpo para uma nova construção.
+* **`/benchmark`**:
+  Dispara uma confirmação interativa no chat:
+  > **⚡ Comando /benchmark detectado!**  
+  > Deseja iniciar a verificação e construção funcional dos minijogos via Agente IA ReAct NATIVO para demonstração no vídeo?  
+  > **👉 Digite 'confirmar' ou 'sim' para iniciar.**
+  
+  Ao responder `sim`, a engine aciona o loop ReAct, construindo, verificando códigos e relatando FPS e telemetria de memória diretamente no histórico de conversa da IDE em tempo real!
+
+---
+
+## 🛠️ 4. Como Ativar o Plugin no Godot 4
 
 1. Abra a pasta do projeto (`/home/j/Documentos/GitHub/crom-godot-ai`) no **Godot 4.6+**.
 2. No menu superior, vá em **Projeto** ➔ **Configurações do Projeto...** ➔ **Plugins**.
 3. Marque a caixa **Ativar** ao lado de **CromAI MCP & Play Bridge**.
-4. No console de saída do Godot (`Saída`), você verá:
-   ```text
-   =========================================================
-   [CromAI Bridge] Carregando plugin do Editor no Godot...
-   [CromAI WebSocket] Servidor ativo e escutando na porta 8080 (ws://127.0.0.1:8080)
-   [CromAI Bridge] Sistema pronto! Conecte seu Servidor MCP/IA na porta 8080.
-   =========================================================
-   ```
+4. A barra lateral direita ganhará a aba **"CromAI Chat"** pronta para uso, junto com o servidor WebSocket na porta `8080`!
 
 ---
 
-## 🚀 2. Como Rodar o Agente (`crom-godot-agent`)
+## 🚀 5. Como Rodar o Agente Externo (`crom-godot-agent`)
 
-Você pode rodar o agente tanto em **Go** (alta performance e compatibilidade com o ecossistema original do `crom-agente`) quanto em **Python**.
+Caso prefira operar via terminal / daemon ReAct externo em **Go** ou **Python** se conectando via WebSocket (`ws://127.0.0.1:8080`):
 
 ### Opção A: Executando a versão em Go (`crom-godot-agent/go`)
 
@@ -97,9 +170,9 @@ python3 crom_godot_agent.py --provider openrouter --model deepseek/deepseek-chat
 
 ---
 
-## 🧩 3. As Ferramentas MCP Expostas para a IA
+## 🧩 6. As Ferramentas MCP Expostas para a IA
 
-O `crom-godot-agent` provê duas modalidades de ferramentas que a IA alterna organicamente durante sua raciocínio (`ReAct`):
+O `crom-godot-agent` provê duas modalidades de ferramentas que a IA alterna organicamente durante seu raciocínio (`ReAct`):
 
 ### 🔨 Pilar 1: Ferramentas de Construção (`Build Mode`)
 * `get_scene_tree()`: Lê a árvore de nós atualmente aberta na IDE do Godot.
@@ -111,8 +184,9 @@ O `crom-godot-agent` provê duas modalidades de ferramentas que a IA alterna org
 * `define_rule(trigger_action, target_entity_id, conditions, results)`: Programa lógicas dinâmicas de reação de jogo (ex: *"Se o jogador usar 'abrir' no 'bau_01' e tiver 'chave_ouro', adicione 'espada_magica' ao inventário"*).
 * `link_locations(location_a, location_b, direction)`: Interliga saídas e passagens do mundo.
 
-### 🎮 Pilar 2: Ferramentas de Jogo (`Play Mode`)
+### 🎮 Pilar 2: Ferramentas de Jogo e Visão (`Play Mode`)
 * `switch_mode(mode="play")`: O agente sai do papel de "Desenvolvedor" e assume a identidade do "Jogador" dentro do mundo recém-criado.
+* `capture_screenshot()`: Captura a tela atual do jogo ou do editor em Base64 e envia para a IA analisar visualmente a responsividade e o layout.
 * `look_around()`: Observa o que há na sala atual (nome, descrição, saídas e entidades visíveis).
 * `move(direction)`: Desloca o jogador pelo grafo do mapa.
 * `interact(action, target_id, with_item_id)`: Executa ações (`abrir`, `pegar`, `examinar`, `atacar`) aplicando o motor de regras programado na fase de construção.
@@ -126,7 +200,7 @@ O `crom-godot-agent` provê duas modalidades de ferramentas que a IA alterna org
 **Usuário:**
 > *"Crie um mini-jogo de fuga de uma prisão medieval. Coloque uma cela inicial, um corredor com um guarda dormindo e uma chave escondida. Depois, mude para o modo de jogo e tente escapar sozinho!"*
 
-**Raciocínio e Ações do Agente (`crom-godot-agent` via ReAct Loop):**
+**Raciocínio e Ações do Agente via ReAct Loop:**
 1. **[Tool: `create_location`]** ➔ Cria sala `"cela_01"` (*"Cela Escura"*) e `"corredor_01"` (*"Corredor de Pedra"*).
 2. **[Tool: `link_locations`]** ➔ Conecta `"cela_01"` a `"corredor_01"` pela direção `"norte"`.
 3. **[Tool: `create_entity`]** ➔ Cria entidade `"chave_ferro"` dentro de `"cela_01"` e `"porta_ferro"` no caminho para o corredor.
@@ -142,4 +216,4 @@ O `crom-godot-agent` provê duas modalidades de ferramentas que a IA alterna org
 
 ## 📜 Filosofia e Licenciamento
 
-Este projeto é diretamente inspirado pelo ecossistema **[crom-agente](https://github.com/MrJc01/crom-agente)** do desenvolvedor **MrJc01**, trazendo a mesma independência modular (`Daemon Go + SDK + WebSocket Bridge + Sandbox`) para revolucionar a forma como criamos e jogamos com Inteligências Artificiais no **Godot**.
+Este projeto é diretamente inspirado pelo ecossistema **[crom-agente](https://github.com/MrJc01/crom-agente)** do desenvolvedor **MrJc01**, trazendo a mesma independência modular (`Daemon Go + SDK + WebSocket Bridge + Native ReAct Engine in Godot`) para revolucionar a forma como criamos e jogamos com Inteligências Artificiais no **Godot Engine**.

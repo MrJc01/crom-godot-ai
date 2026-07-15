@@ -21,7 +21,7 @@ var api_key: String = ""
 var messages: Array = []
 var is_busy: bool = false
 var current_iterations: int = 0
-var max_iterations: int = 10
+var max_iterations: int = 20
 
 func _init(processor: Node = null) -> void:
 	command_processor = processor
@@ -192,6 +192,11 @@ func _on_http_request_completed(result: int, response_code: int, headers: Packed
 				var cmd_payload = JSON.stringify({ "action": fn_name, "params": args_dict })
 				tool_result = temp_proc.process_command(cmd_payload)
 				
+		var b64_img = ""
+		if tool_result is Dictionary and tool_result.has("image_base64"):
+			b64_img = str(tool_result["image_base64"])
+			tool_result = { "status": "success", "message": "Captura de tela obtida com sucesso e anexada como imagem multimodal para análise visual." }
+			
 		var res_str = JSON.stringify(tool_result)
 		emit_signal("message_added", "tool_res", "✅ Resultado: " + res_str)
 		
@@ -201,6 +206,15 @@ func _on_http_request_completed(result: int, response_code: int, headers: Packed
 			"name": fn_name,
 			"content": res_str
 		})
+		
+		if b64_img != "":
+			messages.append({
+				"role": "user",
+				"content": [
+					{ "type": "text", "text": "[Inspeção Visual Automática] Imagem capturada da interface do Godot Editor / Cena em execução:" },
+					{ "type": "image_url", "image_url": { "url": "data:image/png;base64," + b64_img } }
+				]
+			})
 		
 	# Chama a próxima iteração ReAct via timer ou call_deferred para alimentar a LLM com o resultado das ferramentas
 	call_deferred("_step_react_loop")
@@ -261,6 +275,51 @@ func _get_tools_definition() -> Array:
 						"gdscript_code": {"type": "string"}
 					},
 					"required": ["node_path", "script_path", "gdscript_code"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "capture_screenshot",
+				"description": "Tira um print (captura de tela) da IDE ou da cena em execução no Godot e retorna em Base64 para inspeção visual.",
+				"parameters": {"type": "object", "properties": {}}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "get_open_editor_context",
+				"description": "Obtém a lista de scripts abertos, a cena atual que o usuário está editando e os nós atualmente selecionados no Inspetor.",
+				"parameters": {"type": "object", "properties": {}}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "read_project_file",
+				"description": "Lê o conteúdo completo de um script ou arquivo do projeto res:// para inspeção.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"file_path": {"type": "string", "description": "Caminho do arquivo (ex: res://scenes/main.gd)"}
+					},
+					"required": ["file_path"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "modify_project_file",
+				"description": "Substitui ou atualiza o conteúdo de um arquivo no projeto e solicita que a engine recarregue.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"file_path": {"type": "string"},
+						"new_content": {"type": "string"}
+					},
+					"required": ["file_path", "new_content"]
 				}
 			}
 		},
