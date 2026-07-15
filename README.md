@@ -10,10 +10,30 @@ Através de uma arquitetura limpa dividida em **EditorPlugin (@tool)** no Godot 
 
 O projeto está configurado para que o **Arcade Hub (`res://benchmark/arcade_hub.tscn`)** seja a **Cena Principal por padrão (`main_scene`)**. Siga este fluxo para testar e demonstrar no vídeo:
 
-### Passo 1: Abrindo na Página Inicial do Godot (Project Manager)
-1. Abra o **Godot Engine 4.6+** (ou o executável do seu Godot).
-2. Na tela inicial de seleção de projetos (**Project Manager / Gerenciador de Projetos**), clique em **Importar** (ou **Adicionar**) e selecione a pasta do projeto (`/home/j/Documentos/GitHub/crom-godot-ai/project.godot`).
-3. Dê um duplo clique no projeto **`CromAI Godot Bridge`** para abrir o Editor.
+### Passo 1: Como Abrir o Godot (Comandos de Terminal e Cliques)
+
+No seu terminal do Linux, dentro da pasta do projeto (`cd /home/j/Documentos/GitHub/crom-godot-ai`), você tem **3 comandos exatos** dependendo de onde quer começar:
+
+* **Opção A — Abrir na Página Inicial / Menu de Projetos (`Project Manager`)**:
+  ```bash
+  godot -p
+  ```
+  *(ou `/home/j/.local/bin/godot -p`)*  
+  ➔ **Onde clicar**: Quando a janela inicial abrir, clique no botão **"Importar"** (ou **"Adicionar"**), selecione o arquivo `/home/j/Documentos/GitHub/crom-godot-ai/project.godot` e depois dê **duplo clique no projeto `CromAI Godot Bridge`** para entrar na tela de edição.
+
+* **Opção B — Abrir Direto na Tela de Edição (IDE do Godot)** *(Mais Rápido)*:
+  ```bash
+  godot -e
+  ```
+  *(ou `/home/j/.local/bin/godot -e`)*  
+  ➔ Isso pula a tela de escolha e abre diretamente o **Editor Godot** com o projeto já carregado!
+
+* **Opção C — Abrir Direto o Jogo / Arcade Hub (Sem o Editor)**:
+  ```bash
+  godot
+  ```
+  *(ou `/home/j/.local/bin/godot`)*  
+  ➔ Como o projeto já está configurado por padrão para rodar o `res://benchmark/arcade_hub.tscn`, digitar apenas `godot` abre direto a janela do **Arcade Hub com a lista dos 15 jogos**!
 
 ### Passo 2: Acessando o Chat do Agente na Tela de Edição
 1. Com o editor aberto, olhe na barra lateral direita superior: você verá a aba **"CromAI Chat"** ativa.
