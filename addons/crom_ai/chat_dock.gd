@@ -25,6 +25,16 @@ const PROVIDERS := [
 	{ "id": "cromia", "label": "CromIA Cloud", "model": "google/gemini-2.5-flash", "key_hint": "Chave CromIA" },
 ]
 
+# Modelos válidos sugeridos por provedor (para /modelos e validação de /modelo).
+const KNOWN_MODELS := {
+	"openrouter": ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "google/gemini-2.5-flash-lite", "anthropic/claude-sonnet-4.5", "openai/gpt-4o", "deepseek/deepseek-chat"],
+	"ollama": ["llama3", "qwen2.5-coder", "mistral", "deepseek-coder-v2"],
+	"openai": ["gpt-4o", "gpt-4o-mini", "o3-mini"],
+	"anthropic": ["claude-sonnet-4-5", "claude-opus-4-1", "claude-3-5-haiku-latest"],
+	"gemini": ["gemini-2.5-flash", "gemini-2.5-pro"],
+	"cromia": ["google/gemini-2.5-flash", "google/gemini-2.5-pro"],
+}
+
 # Slash commands. kind: "agent" (vira task), "scene" (pede uma cena), "local" (ação da UI).
 const SLASH_COMMANDS := [
 	{ "cmd": "/jogar", "desc": "Agente joga e auto-corrige o jogo", "kind": "agent",
@@ -38,6 +48,14 @@ const SLASH_COMMANDS := [
 	  "task": "Leia a árvore de nós da cena aberta com get_scene_tree e resuma a estrutura para mim." },
 	{ "cmd": "/corrigir", "desc": "Corrigir o último erro detectado", "kind": "agent",
 	  "task": "Analise o último erro de script reportado no projeto, encontre a causa e corrija-o." },
+	{ "cmd": "/config", "desc": "Mostrar config atual e abrir o painel", "kind": "config", "id": "config" },
+	{ "cmd": "/status", "desc": "Status da conexão e configuração", "kind": "config", "id": "status" },
+	{ "cmd": "/modelo", "desc": "Definir o modelo (ex: /modelo google/gemini-2.5-pro)", "kind": "config", "id": "modelo" },
+	{ "cmd": "/modelos", "desc": "Listar modelos válidos do provedor atual", "kind": "config", "id": "modelos" },
+	{ "cmd": "/provedor", "desc": "Definir o provedor (ex: /provedor openrouter)", "kind": "config", "id": "provedor" },
+	{ "cmd": "/chave", "desc": "Definir a API key (ex: /chave sk-or-v1-...)", "kind": "config", "id": "chave" },
+	{ "cmd": "/permissao", "desc": "Permissões: /permissao perguntar | total", "kind": "config", "id": "permissao" },
+	{ "cmd": "/auto", "desc": "Auto-aprovar ferramentas: /auto on | off", "kind": "config", "id": "auto" },
 	{ "cmd": "/nova", "desc": "Iniciar uma nova conversa", "kind": "local", "action": "new" },
 	{ "cmd": "/limpar", "desc": "Limpar o chat atual", "kind": "local", "action": "clear" },
 ]
@@ -391,7 +409,7 @@ func _load_saved_config() -> void:
 		_config_panel.visible = true
 		_append_entry_deferred("system", "Configure o provedor e a API key para começar (botão ⚙).")
 
-func _save_and_apply_config() -> void:
+func _persist_and_apply() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("ai", "provider", PROVIDERS[_provider_option.selected]["id"])
 	cfg.set_value("ai", "model", _model_input.text.strip_edges())
@@ -400,6 +418,9 @@ func _save_and_apply_config() -> void:
 	cfg.set_value("ai", "auto_approve", _auto_approve_check.button_pressed)
 	cfg.save(_get_config_path())
 	_apply_config_to_agent()
+
+func _save_and_apply_config() -> void:
+	_persist_and_apply()
 	_config_panel.visible = false
 	_append_entry("system", "Configuração salva: %s · %s" % [PROVIDERS[_provider_option.selected]["label"], _model_input.text])
 
@@ -434,8 +455,18 @@ func _on_send_pressed() -> void:
 	if prompt == "" and _context_chips.is_empty():
 		return
 
-	# Comando de slash local digitado por extenso
+	# Comando de slash digitado por extenso
 	if prompt.begins_with("/"):
+		# Config: aceitam argumento (ex: "/modelo google/gemini-2.5-pro")
+		for cmd in SLASH_COMMANDS:
+			if cmd.get("kind") == "config":
+				var c := str(cmd["cmd"])
+				if prompt == c or prompt.begins_with(c + " "):
+					_prompt_input.text = ""
+					_hide_slash_menu()
+					_run_config_command(str(cmd["id"]), prompt.substr(c.length()).strip_edges())
+					return
+		# Locais: match exato
 		for cmd in SLASH_COMMANDS:
 			if prompt == cmd["cmd"] and cmd["kind"] == "local":
 				_prompt_input.text = ""
@@ -477,6 +508,119 @@ func _run_local_command(action: String) -> void:
 			_append_entry("system", "Chat limpo.")
 		"new":
 			_on_new_session()
+
+# ==============================================================================
+# Comandos de configuração via chat (/modelo, /provedor, /chave, ...)
+# ==============================================================================
+
+func _run_config_command(id: String, arg: String) -> void:
+	match id:
+		"config":
+			_config_panel.visible = true
+			_show_current_config()
+		"status":
+			_show_current_config()
+		"modelos":
+			_list_known_models()
+		"modelo":
+			if arg == "":
+				_append_entry("system", "Modelo atual: %s\nUso: /modelo <id>  ·  veja /modelos" % _model_input.text)
+			else:
+				_set_model_cmd(arg)
+		"provedor":
+			if arg == "":
+				_append_entry("system", "Provedor atual: %s\nUso: /provedor <id>  ·  opções: %s" % [PROVIDERS[_provider_option.selected]["id"], _provider_ids()])
+			else:
+				_set_provider_cmd(arg)
+		"chave":
+			if arg == "":
+				_append_entry("system", "Uso: /chave <sua-api-key>  (fica só localmente em user://)")
+			else:
+				_api_key_input.text = arg
+				_persist_and_apply()
+				_append_entry("system", "API key atualizada e salva localmente.")
+		"permissao":
+			_set_permission_cmd(arg)
+		"auto":
+			_set_auto_cmd(arg)
+
+func _show_current_config() -> void:
+	var prov: Dictionary = PROVIDERS[_provider_option.selected]
+	var conn := "conectado" if (agent and agent.is_connected_to_daemon) else "offline"
+	var key_state := "definida" if _api_key_input.text.strip_edges() != "" else "VAZIA"
+	var perm := "perguntar antes de agir" if _perm_option.selected == 0 else "acesso total"
+	_append_entry("system", "Configuração atual:\n · Provedor: %s\n · Modelo: %s\n · API key: %s\n · Permissão: %s\n · Auto-aprovar: %s\n · Daemon: %s" % [
+		prov["label"], _model_input.text, key_state, perm,
+		("sim" if _auto_approve_check.button_pressed else "não"), conn])
+
+func _list_known_models() -> void:
+	var prov_id := str(PROVIDERS[_provider_option.selected]["id"])
+	var models: Array = KNOWN_MODELS.get(prov_id, [])
+	if models.is_empty():
+		_append_entry("system", "Sem sugestões de modelo para %s. Use /modelo <id>." % prov_id)
+		return
+	_append_entry("system", "Modelos válidos para %s:\n · %s\n\nUse: /modelo <id>" % [prov_id, "\n · ".join(models)])
+
+# Retorna um aviso se o modelo parecer inválido, senão "".
+func _validate_model(m: String, prov_id: String) -> String:
+	if prov_id == "openrouter":
+		if not ("/" in m):
+			return "Modelos do OpenRouter têm o formato 'org/modelo' (ex: google/gemini-2.5-pro)."
+		if m == "google/gemini-2.5":
+			return "'google/gemini-2.5' não existe. Use google/gemini-2.5-flash ou google/gemini-2.5-pro."
+	return ""
+
+func _set_model_cmd(m: String) -> void:
+	m = m.strip_edges()
+	var prov_id := str(PROVIDERS[_provider_option.selected]["id"])
+	var warn := _validate_model(m, prov_id)
+	if warn != "":
+		_append_entry("system", "Aviso: %s\n(Não apliquei. Veja /modelos.)" % warn)
+		return
+	_model_input.text = m
+	_persist_and_apply()
+	_append_entry("system", "Modelo definido para: %s" % m)
+
+func _set_provider_cmd(arg: String) -> void:
+	arg = arg.strip_edges().to_lower()
+	for i in range(PROVIDERS.size()):
+		if str(PROVIDERS[i]["id"]) == arg or str(PROVIDERS[i]["label"]).to_lower().begins_with(arg):
+			_provider_option.select(i)
+			_on_provider_selected(i)
+			_persist_and_apply()
+			_append_entry("system", "Provedor definido para: %s (modelo: %s)" % [PROVIDERS[i]["label"], _model_input.text])
+			return
+	_append_entry("system", "Provedor '%s' desconhecido. Opções: %s" % [arg, _provider_ids()])
+
+func _provider_ids() -> String:
+	var ids: Array[String] = []
+	for p in PROVIDERS:
+		ids.append(str(p["id"]))
+	return ", ".join(ids)
+
+func _set_permission_cmd(arg: String) -> void:
+	arg = arg.strip_edges().to_lower()
+	if arg in ["perguntar", "ask", "0"]:
+		_perm_option.select(0)
+	elif arg in ["total", "full", "1"]:
+		_perm_option.select(1)
+	else:
+		_append_entry("system", "Uso: /permissao perguntar | total")
+		return
+	_persist_and_apply()
+	_append_entry("system", "Permissão: %s" % ("perguntar antes de agir" if _perm_option.selected == 0 else "acesso total"))
+
+func _set_auto_cmd(arg: String) -> void:
+	arg = arg.strip_edges().to_lower()
+	if arg in ["on", "sim", "true", "1", "ligar"]:
+		_auto_approve_check.button_pressed = true
+	elif arg in ["off", "nao", "não", "false", "0", "desligar"]:
+		_auto_approve_check.button_pressed = false
+	else:
+		_append_entry("system", "Uso: /auto on | off")
+		return
+	_persist_and_apply()
+	_append_entry("system", "Auto-aprovar ferramentas: %s" % ("ligado" if _auto_approve_check.button_pressed else "desligado"))
 
 # ==============================================================================
 # Context chips (badges de contexto acima do input)
@@ -670,6 +814,19 @@ func _execute_slash(item: Dictionary) -> void:
 			_prompt_input.text = ""
 			_hide_slash_menu()
 			_run_local_command(item["cmd"]["action"])
+		"config":
+			var cid := str(item["cmd"]["id"])
+			if cid in ["config", "status", "modelos"]:
+				# Sem argumento: executa direto
+				_prompt_input.text = ""
+				_hide_slash_menu()
+				_run_config_command(cid, "")
+			else:
+				# Com argumento: preenche o comando e espera o valor
+				_prompt_input.text = str(item["cmd"]["cmd"]) + " "
+				_prompt_input.caret_column = _prompt_input.text.length()
+				_prompt_input.grab_focus()
+				_hide_slash_menu()
 
 func _list_scenes() -> Array[String]:
 	var scenes: Array[String] = []

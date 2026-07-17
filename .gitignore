@@ -27,3 +27,4 @@ addons/crom_ai/chat_history/
 # Binários Go compilados localmente (o daemon vem via release em addons/crom_ai/bin/)
 crom-godot-agent/go/crom-godot-agent
 external/godot
+.claude

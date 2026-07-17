@@ -1,0 +1,19 @@
+{
+  "name": "godot4-gdscript",
+  "description": "Regras de GDScript para Godot 4 (evita sintaxe do Godot 3) e fluxo de verificação.",
+  "system_prompt_addon": "Você escreve GDScript para Godot 4.x usando as ferramentas godot_* do editor. NUNCA use sintaxe do Godot 3.",
+  "preferred_tools": ["godot_gdscript_check", "godot_get_console_errors", "godot_connect_signal", "godot_play_scene"],
+  "file_patterns": ["*.gd", "*.tscn", "project.godot"],
+  "rules": [
+    "Redesenhar: queue_redraw() — NUNCA update().",
+    "Cores nomeadas em MAIÚSCULO: Color.GRAY, Color.RED — não Color.gray.",
+    "Corrotinas: await — NUNCA yield.",
+    "Instanciar cena: packed.instantiate() — NUNCA .instance().",
+    "Física 2D: CharacterBody2D/RigidBody2D (não KinematicBody2D); move_and_slide() sem argumentos.",
+    "Timer só funciona com autostart=true OU start(); conecte o sinal timeout ao método com godot_connect_signal.",
+    "Ao criar handler _on_<no>_<sinal>, conecte o sinal — senão nunca é chamado.",
+    "Valide todo script com godot_gdscript_check ANTES de anexar.",
+    "Depois de montar a cena: godot_play_scene, depois godot_get_console_errors; só finalize com 0 erros.",
+    "NÃO edite .tscn com write_file/edit_file — use as ferramentas godot_* para a cena."
+  ]
+}

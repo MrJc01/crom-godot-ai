@@ -108,6 +108,12 @@ var godotMCPTools = []mcpToolDef{
 		"node_path":       {"string", "Caminho do nó a mover"},
 		"new_parent_path": {"string", "Caminho do novo pai ('.' para a raiz da cena)"},
 	}, "node_path", "new_parent_path")},
+	{"godot_connect_signal", "Conecta um sinal de um nó a um método de outro nó, salvando a conexão na cena. USE ISTO sempre que criar um handler no padrão _on_<no>_<sinal> (ex.: ligar o 'timeout' de um Timer ao método _on_timer_timeout) — sem a conexão a cena roda mas o jogo não funciona.", schema(map[string][2]string{
+		"from_node": {"string", "Caminho do nó que emite o sinal ('.' para a raiz)"},
+		"signal":    {"string", "Nome do sinal (ex: timeout, pressed, body_entered, area_entered)"},
+		"to_node":   {"string", "Caminho do nó que recebe o sinal ('.' para a raiz, onde está o script/método)"},
+		"method":    {"string", "Nome do método a ser chamado (ex: _on_timer_timeout)"},
+	}, "signal", "method")},
 	{"godot_create_and_attach_script", "Cria um arquivo GDScript e anexa ao nó indicado da cena aberta. Cria diretórios se necessário.", schema(map[string][2]string{
 		"node_path":     {"string", "Caminho do nó que receberá o script ('.' para a raiz)"},
 		"script_path":   {"string", "Caminho res:// do arquivo .gd (ex: res://scripts/player.gd)"},

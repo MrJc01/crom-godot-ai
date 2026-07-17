@@ -40,6 +40,8 @@ func process_command(command_json: String) -> Dictionary:
 			return _rename_node(params)
 		"reparent_node":
 			return _reparent_node(params)
+		"connect_signal":
+			return _connect_signal(params)
 		"create_and_attach_script":
 			return _create_and_attach_script(params)
 		"create_scene":
@@ -70,8 +72,43 @@ func process_command(command_json: String) -> Dictionary:
 			return _modify_project_file(params)
 		"list_project_dir":
 			return _list_project_dir(params)
-			
-			
+
+		# ======================================================================
+		# 1b. LAÇO DE FEEDBACK, INSPEÇÃO E QA (crom-godot-mcp fases 1/3/5/6/7)
+		# ======================================================================
+		"get_console_errors":
+			return _get_console_errors(params)
+		"get_output":
+			return _get_output(params)
+		"clear_output":
+			return _clear_output()
+		"gdscript_check":
+			return _gdscript_check(params)
+		"read_script":
+			return _read_script(params)
+		"list_node_methods":
+			return _list_node_methods(params)
+		"list_node_signals":
+			return _list_node_signals(params)
+		"get_node_config_warnings":
+			return _get_node_config_warnings(params)
+		"duplicate_node":
+			return _duplicate_node(params)
+		"add_to_group":
+			return _add_to_group(params)
+		"remove_from_group":
+			return _remove_from_group(params)
+		"get_project_setting":
+			return _get_project_setting(params)
+		"list_input_actions":
+			return _list_input_actions()
+		"create_resource":
+			return _create_resource(params)
+		"simulate_key":
+			return _simulate_key(params)
+		"simulate_action":
+			return _simulate_action(params)
+
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
 		# ======================================================================
@@ -310,6 +347,59 @@ func _mark_scene_modified() -> void:
 		# Salva a cena automaticamente para manter o arquivo .tscn em sincronia com o disco
 		EditorInterface.save_scene()
 
+# Conecta um sinal de um nó a um método de outro nó, de forma PERSISTENTE (a
+# conexão é gravada no .tscn). Sem isso o agente cria handlers como
+# _on_timer_timeout mas o sinal nunca é ligado — a cena roda sem erro, porém o
+# jogo não funciona (ex.: o Timer nunca chama o método e a cobra não se move).
+func _connect_signal(params: Dictionary) -> Dictionary:
+	var from_path: String = str(params.get("from_node", params.get("node_path", ".")))
+	var signal_name: String = str(params.get("signal", params.get("signal_name", "")))
+	var to_path: String = str(params.get("to_node", "."))
+	var method: String = str(params.get("method", params.get("method_name", "")))
+
+	if signal_name == "" or method == "":
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'signal' e 'method'." }
+
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+
+	var from_node: Node = scene_root if from_path in [".", ""] else scene_root.get_node_or_null(from_path)
+	var to_node: Node = scene_root if to_path in [".", ""] else scene_root.get_node_or_null(to_path)
+	if not from_node:
+		return { "status": "error", "message": "Nó emissor não encontrado em '%s'." % from_path }
+	if not to_node:
+		return { "status": "error", "message": "Nó receptor não encontrado em '%s'." % to_path }
+	if not from_node.has_signal(signal_name):
+		return { "status": "error", "message": "O nó '%s' não tem o sinal '%s'." % [from_node.name, signal_name] }
+
+	# Checa o método de forma tolerante: has_method pode retornar falso logo após
+	# anexar um script (cache do editor), mesmo com o método definido. Também olha
+	# a lista de métodos do script. Se ainda assim não achar, conecta com um AVISO
+	# em vez de bloquear (CONNECT_PERSIST salva na cena; o Godot resolve em runtime).
+	var method_ok := to_node.has_method(method)
+	if not method_ok:
+		var sc = to_node.get_script()
+		if sc and sc is Script:
+			for m in sc.get_script_method_list():
+				if str(m.get("name", "")) == method:
+					method_ok = true
+					break
+	var note := ""
+	if not method_ok:
+		note = " [aviso: o método '%s' não foi encontrado agora — verifique o nome no script; a conexão foi salva e o Godot valida ao rodar]" % method
+
+	var callable := Callable(to_node, method)
+	if from_node.is_connected(signal_name, callable):
+		return { "status": "success", "message": "Sinal '%s' de '%s' já estava conectado a %s().%s" % [signal_name, from_node.name, method, note] }
+
+	# CONNECT_PERSIST faz a conexão ser salva na cena (.tscn), valendo em runtime.
+	var err := from_node.connect(signal_name, callable, CONNECT_PERSIST)
+	if err != OK:
+		return { "status": "error", "message": "Falha ao conectar o sinal (erro %d)." % err }
+	_mark_scene_modified()
+	return { "status": "success", "message": "Sinal '%s' de '%s' conectado a %s.%s() e salvo na cena.%s" % [signal_name, from_node.name, to_node.name, method, note] }
+
 func _move_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
 	var pos = params.get("position")
@@ -401,7 +491,13 @@ func _create_scene(params: Dictionary) -> Dictionary:
 	if save_err != OK:
 		return { "status": "error", "message": "Falha ao salvar a cena em '%s' (erro %d)." % [scene_path, save_err] }
 	_refresh_editor_filesystem()
-	return { "status": "success", "message": "Cena '%s' criada com raiz %s ('%s')." % [scene_path, root_type, root.name if is_instance_valid(root) else root_name] }
+	# Abre a cena recém-criada no editor: sem isso, add_node/set_node_property seguintes
+	# falham com "nenhuma cena aberta".
+	var opened := false
+	if editor_plugin and Engine.is_editor_hint():
+		EditorInterface.open_scene_from_path(scene_path)
+		opened = true
+	return { "status": "success", "message": "Cena '%s' criada com raiz %s ('%s')%s." % [scene_path, root_type, root_name, " e aberta no editor" if opened else ""] }
 
 func _instantiate_scene(params: Dictionary) -> Dictionary:
 	var scene_path: String = str(params.get("scene_path", ""))
@@ -532,11 +628,19 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 func _play_scene(params: Dictionary) -> Dictionary:
 	var scene_path: String = str(params.get("scene_path", ""))
 	if editor_plugin and editor_plugin.get_editor_interface():
+		# Marca o baseline do console ANTES de rodar, para que get_console_errors
+		# capture só os erros DESTA execução.
+		var lp := _godot_log_path()
+		if FileAccess.file_exists(lp):
+			var lf := FileAccess.open(lp, FileAccess.READ)
+			if lf:
+				_log_baseline = lf.get_length()
+				lf.close()
 		if scene_path != "":
 			editor_plugin.get_editor_interface().play_custom_scene(scene_path)
 		else:
 			editor_plugin.get_editor_interface().play_main_scene()
-		return { "status": "success", "message": "Execução de cena iniciada no Godot." }
+		return { "status": "success", "message": "Execução iniciada. Aguarde ~1-2s e chame godot_get_console_errors para verificar se rodou SEM erros; se houver erro, corrija e rode de novo." }
 	return { "status": "error", "message": "EditorInterface indisponível para rodar cena." }
 
 func _stop_scene() -> Dictionary:
@@ -696,3 +800,247 @@ func _refresh_editor_filesystem() -> void:
 			ef.scan()
 			ef.scan_sources()
 
+
+# ==============================================================================
+# crom-godot-mcp — Fase 1: LAÇO DE FEEDBACK (o agente enxerga os próprios erros)
+# ==============================================================================
+
+var _log_baseline: int = 0
+
+func _godot_log_path() -> String:
+	# Log do editor; captura também o stdout/stderr do jogo rodado via play_scene.
+	return "user://logs/godot.log"
+
+func _read_log_tail(max_bytes: int = 60000) -> String:
+	var p := _godot_log_path()
+	if not FileAccess.file_exists(p):
+		return ""
+	var f := FileAccess.open(p, FileAccess.READ)
+	if not f:
+		return ""
+	var size := f.get_length()
+	var start := _log_baseline if _log_baseline > 0 and _log_baseline < size else max(0, size - max_bytes)
+	f.seek(start)
+	var txt := f.get_buffer(size - start).get_string_from_utf8()
+	f.close()
+	return txt
+
+# Lê os erros recentes do console (SCRIPT ERROR / Parse Error / ERROR).
+func _get_console_errors(params: Dictionary) -> Dictionary:
+	var txt := _read_log_tail()
+	if txt == "":
+		return { "status": "success", "errors": [], "message": "Nenhum log encontrado (rode play_scene primeiro; ou não há erros)." }
+	var errors: Array[String] = []
+	var lines := txt.split("\n")
+	for i in range(lines.size()):
+		var l := String(lines[i]).strip_edges()
+		if l.contains("SCRIPT ERROR") or l.contains("Parse Error") or l.begins_with("ERROR:") or l.contains("Nonexistent") or l.contains("Invalid call") or l.contains("Failed to load"):
+			errors.append(l)
+			# anexa a linha seguinte (normalmente o 'at: arquivo:linha')
+			if i + 1 < lines.size():
+				var nxt := String(lines[i + 1]).strip_edges()
+				if nxt.begins_with("at:") or nxt.begins_with("   at:"):
+					errors.append("  " + nxt)
+	if errors.is_empty():
+		return { "status": "success", "errors": [], "message": "Console limpo: nenhum erro detectado desde o último clear/execução." }
+	return { "status": "success", "error_count": errors.size(), "errors": errors, "message": "%d erro(s) no console. Corrija e rode de novo." % errors.size() }
+
+# Devolve as últimas linhas do Output (prints, avisos, tudo).
+func _get_output(params: Dictionary) -> Dictionary:
+	var n := int(params.get("lines", 60))
+	var txt := _read_log_tail()
+	var lines := txt.split("\n")
+	var out: Array[String] = []
+	var startn := max(0, lines.size() - n)
+	for i in range(startn, lines.size()):
+		var l := String(lines[i]).strip_edges()
+		if l != "":
+			out.append(l)
+	return { "status": "success", "output": out }
+
+# Marca a posição atual do log como baseline: get_console_errors/get_output só
+# olham o que vier DEPOIS. Use antes de um novo teste para ter leitura limpa.
+func _clear_output() -> Dictionary:
+	var p := _godot_log_path()
+	if FileAccess.file_exists(p):
+		var f := FileAccess.open(p, FileAccess.READ)
+		if f:
+			_log_baseline = f.get_length()
+			f.close()
+	return { "status": "success", "message": "Baseline do console definido. Erros/output agora só a partir daqui." }
+
+# Valida a sintaxe de um GDScript SEM rodar a cena (parse via GDScript.reload).
+func _gdscript_check(params: Dictionary) -> Dictionary:
+	var path: String = str(params.get("script_path", params.get("file_path", "")))
+	var code: String = str(params.get("gdscript_code", params.get("code", "")))
+	var gd := GDScript.new()
+	if code != "":
+		gd.source_code = code
+	elif path != "" and FileAccess.file_exists(path):
+		gd.source_code = FileAccess.get_file_as_string(path)
+	else:
+		return { "status": "error", "message": "Informe 'script_path' existente ou 'gdscript_code'." }
+	var err := gd.reload(true)
+	if err != OK:
+		return { "status": "error", "valid": false, "message": "GDScript com erro de sintaxe/parse (erro %d). Veja get_console_errors para detalhes." % err }
+	return { "status": "success", "valid": true, "message": "Sintaxe do GDScript OK." }
+
+# ==============================================================================
+# crom-godot-mcp — Fase 5/6: inspeção de scripts e nós
+# ==============================================================================
+
+func _resolve_scene_node(params: Dictionary) -> Node:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return null
+	var np := str(params.get("node_path", "."))
+	return scene_root if np in [".", ""] else scene_root.get_node_or_null(np)
+
+func _read_script(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var sc = target.get_script()
+	if not sc:
+		return { "status": "success", "has_script": false, "message": "O nó '%s' não tem script." % target.name }
+	return { "status": "success", "has_script": true, "script_path": sc.resource_path, "source": sc.source_code }
+
+func _list_node_methods(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var methods: Array[String] = []
+	for m in target.get_method_list():
+		var mn := str(m.get("name", ""))
+		if not mn.begins_with("_") or mn.begins_with("_on_") or mn == "_ready" or mn == "_process":
+			methods.append(mn)
+	return { "status": "success", "node": str(target.name), "type": target.get_class(), "methods": methods }
+
+func _list_node_signals(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var sigs: Array[String] = []
+	for s in target.get_signal_list():
+		sigs.append(str(s.get("name", "")))
+	return { "status": "success", "node": str(target.name), "type": target.get_class(), "signals": sigs }
+
+func _get_node_config_warnings(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var warns: Array = []
+	if target.has_method("get_configuration_warnings"):
+		warns = target.get_configuration_warnings()
+	var arr: Array[String] = []
+	for w in warns:
+		arr.append(str(w))
+	return { "status": "success", "node": str(target.name), "warnings": arr, "message": ("Sem avisos." if arr.is_empty() else "%d aviso(s) de configuração." % arr.size()) }
+
+func _duplicate_node(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var target := scene_root.get_node_or_null(str(params.get("node_path", "")))
+	if not target or target == scene_root:
+		return { "status": "error", "message": "Nó inválido para duplicar." }
+	var dup := target.duplicate()
+	if params.has("new_name"):
+		dup.name = str(params["new_name"])
+	target.get_parent().add_child(dup)
+	dup.owner = scene_root
+	for c in dup.find_children("*", "", true, false):
+		c.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó duplicado como '%s'." % dup.name, "node_path": str(dup.get_path()) }
+
+func _add_to_group(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	var group := str(params.get("group", ""))
+	if not target or group == "":
+		return { "status": "error", "message": "Parâmetros: 'node_path' e 'group'." }
+	target.add_to_group(group, true)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' adicionado ao grupo '%s'." % [target.name, group] }
+
+func _remove_from_group(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	var group := str(params.get("group", ""))
+	if not target or group == "":
+		return { "status": "error", "message": "Parâmetros: 'node_path' e 'group'." }
+	target.remove_from_group(group)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' removido do grupo '%s'." % [target.name, group] }
+
+# ==============================================================================
+# crom-godot-mcp — Fase 7: recursos e projeto (leitura)
+# ==============================================================================
+
+func _get_project_setting(params: Dictionary) -> Dictionary:
+	var setting := str(params.get("setting", ""))
+	if setting == "":
+		return { "status": "error", "message": "Parâmetro 'setting' obrigatório." }
+	if not ProjectSettings.has_setting(setting):
+		return { "status": "success", "exists": false, "message": "Configuração '%s' não definida (usa o padrão)." % setting }
+	return { "status": "success", "exists": true, "setting": setting, "value": ProjectSettings.get_setting(setting) }
+
+func _list_input_actions() -> Dictionary:
+	var actions: Array[String] = []
+	for a in InputMap.get_actions():
+		actions.append(str(a))
+	return { "status": "success", "actions": actions }
+
+func _create_resource(params: Dictionary) -> Dictionary:
+	var res_type := str(params.get("resource_type", ""))
+	var save_path := str(params.get("save_path", ""))
+	if res_type == "" or not ClassDB.class_exists(res_type):
+		return { "status": "error", "message": "resource_type inválido: '%s'." % res_type }
+	if not ClassDB.is_parent_class(res_type, "Resource"):
+		return { "status": "error", "message": "'%s' não é um Resource." % res_type }
+	var res = ClassDB.instantiate(res_type)
+	if not (res is Resource):
+		return { "status": "error", "message": "Falha ao instanciar '%s'." % res_type }
+	if params.has("properties") and params["properties"] is Dictionary:
+		for k in params["properties"]:
+			if k in res:
+				res.set(k, _coerce_value(res, k, params["properties"][k]))
+	if save_path != "":
+		var dir := save_path.get_base_dir()
+		if dir != "" and dir != "res://" and not DirAccess.dir_exists_absolute(dir):
+			DirAccess.make_dir_recursive_absolute(dir)
+		var e := ResourceSaver.save(res, save_path)
+		if e != OK:
+			return { "status": "error", "message": "Falha ao salvar recurso (erro %d)." % e }
+		_refresh_editor_filesystem()
+		return { "status": "success", "message": "Recurso %s salvo em %s." % [res_type, save_path], "save_path": save_path }
+	return { "status": "success", "message": "Recurso %s criado (não salvo — informe save_path para persistir)." % res_type }
+
+# ==============================================================================
+# crom-godot-mcp — Fase 4: simulação de input (para testar jogabilidade)
+# ==============================================================================
+
+func _simulate_key(params: Dictionary) -> Dictionary:
+	var key_name := str(params.get("key", "")).strip_edges()
+	if key_name == "":
+		return { "status": "error", "message": "Parâmetro 'key' obrigatório (ex: Up, W, Space, Enter)." }
+	var keycode := OS.find_keycode_from_string(key_name)
+	if keycode == KEY_NONE:
+		return { "status": "error", "message": "Tecla desconhecida: '%s'." % key_name }
+	var pressed := bool(params.get("pressed", true))
+	var ev := InputEventKey.new()
+	ev.keycode = keycode
+	ev.physical_keycode = keycode
+	ev.pressed = pressed
+	Input.parse_input_event(ev)
+	return { "status": "success", "message": "Tecla '%s' (%s) enviada." % [key_name, "pressed" if pressed else "released"] }
+
+func _simulate_action(params: Dictionary) -> Dictionary:
+	var action := str(params.get("action", "")).strip_edges()
+	if action == "":
+		return { "status": "error", "message": "Parâmetro 'action' obrigatório (ex: ui_accept, jump)." }
+	var pressed := bool(params.get("pressed", true))
+	if pressed:
+		Input.action_press(action)
+	else:
+		Input.action_release(action)
+	return { "status": "success", "message": "Ação '%s' (%s) simulada." % [action, "press" if pressed else "release"] }
