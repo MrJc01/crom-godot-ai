@@ -65,6 +65,7 @@ func _register_context_menus() -> void:
 	print("[CromAI Bridge] Menu de contexto 'Enviar para o Crom Agente' registrado (FileSystem + Scene Tree).")
 
 func _process(_delta: float) -> void:
+	OS.low_processor_usage_mode = false
 	if websocket_server and websocket_server.has_method("process_network"):
 		websocket_server.process_network()
 
