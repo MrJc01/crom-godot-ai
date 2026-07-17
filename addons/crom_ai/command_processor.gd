@@ -307,6 +307,8 @@ func _get_edited_scene_root() -> Node:
 func _mark_scene_modified() -> void:
 	if editor_plugin and Engine.is_editor_hint():
 		EditorInterface.mark_scene_as_unsaved()
+		# Salva a cena automaticamente para manter o arquivo .tscn em sincronia com o disco
+		EditorInterface.save_scene()
 
 func _move_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
@@ -522,7 +524,8 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 		if not target:
 			return { "status": "error", "message": "Script '%s' salvo no disco, mas falhou ao anexar: nó '%s' não encontrado na cena '%s'." % [script_path, node_path, scene_root.name] }
 		target.set_script(loaded_script)
-		return { "status": "success", "message": "Script %s criado e anexado ao nó '%s'." % [script_path, target.name] }
+		_mark_scene_modified()
+		return { "status": "success", "message": "Script %s criado, anexado ao nó '%s' e salvo." % [script_path, target.name] }
 			
 	return { "status": "success", "message": "Script %s criado e salvo com sucesso no disco." % script_path }
 
