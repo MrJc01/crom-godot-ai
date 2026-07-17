@@ -14,7 +14,6 @@ const ThemeC = preload("res://addons/crom_ai/core/theme_constants.gd")
 const Styles = preload("res://addons/crom_ai/core/style_factory.gd")
 const AgentClient = preload("res://addons/crom_ai/crom_agent_client.gd")
 
-const CONFIG_PATH := "user://crom_ai_config.cfg"
 const HISTORY_DIR := "user://crom_chat_history"
 
 const PROVIDERS := [
@@ -354,6 +353,21 @@ func _config_row_label(text: String) -> Label:
 # Configuração
 # ==============================================================================
 
+func _get_config_path() -> String:
+	var home := OS.get_environment("USERPROFILE") if OS.get_name() == "Windows" else OS.get_environment("HOME")
+	if home == "":
+		return "user://crom_ai_config.cfg"
+	var global_dir := home.path_join(".crom")
+	if not DirAccess.dir_exists_absolute(global_dir):
+		DirAccess.make_dir_recursive_absolute(global_dir)
+	var global_path := global_dir.path_join("crom_ai_config.cfg")
+	# Migrate from project-specific user:// config if it exists and global doesn't
+	if not FileAccess.file_exists(global_path) and FileAccess.file_exists("user://crom_ai_config.cfg"):
+		var dir := DirAccess.open("user://")
+		if dir:
+			dir.copy("user://crom_ai_config.cfg", global_path)
+	return global_path
+
 func _on_provider_selected(index: int) -> void:
 	var p: Dictionary = PROVIDERS[index]
 	_model_input.text = p["model"]
@@ -361,7 +375,7 @@ func _on_provider_selected(index: int) -> void:
 
 func _load_saved_config() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(CONFIG_PATH) == OK:
+	if cfg.load(_get_config_path()) == OK:
 		var prov_id := str(cfg.get_value("ai", "provider", "openrouter"))
 		for i in range(PROVIDERS.size()):
 			if PROVIDERS[i]["id"] == prov_id:
@@ -384,7 +398,7 @@ func _save_and_apply_config() -> void:
 	cfg.set_value("ai", "api_key", _api_key_input.text.strip_edges())
 	cfg.set_value("ai", "permission_index", _perm_option.selected)
 	cfg.set_value("ai", "auto_approve", _auto_approve_check.button_pressed)
-	cfg.save(CONFIG_PATH)
+	cfg.save(_get_config_path())
 	_apply_config_to_agent()
 	_config_panel.visible = false
 	_append_entry("system", "Configuração salva: %s · %s" % [PROVIDERS[_provider_option.selected]["label"], _model_input.text])
