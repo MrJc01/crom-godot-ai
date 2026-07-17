@@ -293,6 +293,7 @@ func _write_workspace_config() -> void:
 			if api_key != "": env_lines.append("ANTHROPIC_API_KEY=" + api_key)
 		"gemini":
 			if api_key != "": env_lines.append("GEMINI_API_KEY=" + api_key)
+	env_lines.append("CROM_DISABLE_DISK_QUOTA=true")
 	var f_env := FileAccess.open("res://.crom/.env", FileAccess.WRITE)
 	if f_env:
 		f_env.store_string("\n".join(env_lines))
