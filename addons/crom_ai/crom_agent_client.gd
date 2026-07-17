@@ -230,6 +230,8 @@ func _spawn_daemon() -> void:
 	if bin == "":
 		error_occurred.emit("Binário do crom-agente não encontrado em addons/crom_ai/bin/. Baixe a release ou compile o daemon.")
 		return
+	if OS.get_name() != "Windows":
+		OS.execute("chmod", ["+x", bin])
 	OS.create_process(bin, ["daemon", "start"])
 	print("[CromAgentClient] Daemon do crom-agente iniciado em segundo plano (%s)." % bin)
 
@@ -306,6 +308,8 @@ func _register_godot_mcp_server() -> void:
 	if mcp_bin == "":
 		push_warning("[CromAgentClient] Binário godot-mcp não encontrado; ferramentas de editor não serão registradas no agente.")
 		return
+	if OS.get_name() != "Windows":
+		OS.execute("chmod", ["+x", mcp_bin])
 
 	var home := OS.get_environment("USERPROFILE") if OS.get_name() == "Windows" else OS.get_environment("HOME")
 	if home == "":

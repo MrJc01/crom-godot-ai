@@ -108,6 +108,12 @@ static func create_project(project_name: String, base_dir: String = "") -> Dicti
 	var addons_src := master_project_path().path_join("addons/crom_ai")
 	if DirAccess.dir_exists_absolute(addons_src):
 		_copy_dir_recursive(addons_src, dest.path_join("addons/crom_ai"))
+		if OS.get_name() != "Windows":
+			var bin_dir := dest.path_join("addons/crom_ai/bin")
+			for file in ["crom-agente", "crom-agente-cli", "crom-agente-linux-amd64", "godot-mcp-linux-amd64"]:
+				var p := bin_dir.path_join(file)
+				if FileAccess.file_exists(p):
+					OS.execute("chmod", ["+x", ProjectSettings.globalize_path(p)])
 	var icon_src := master_project_path().path_join("icon.svg")
 	if FileAccess.file_exists(icon_src):
 		DirAccess.copy_absolute(icon_src, dest.path_join("icon.svg"))
