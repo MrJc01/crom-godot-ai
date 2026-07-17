@@ -224,7 +224,7 @@ func _add_node(params: Dictionary) -> Dictionary:
 				new_node.set(prop, _coerce_value(new_node, prop, params["properties"][prop]))
 
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó '%s' (%s) adicionado em '%s'." % [node_name, node_type, parent_node.name], "node_path": str(new_node.get_path()) }
+	return { "status": "success", "message": "Nó '%s' (%s) adicionado em '%s' da cena '%s'." % [node_name, node_type, parent_node.name, scene_root.scene_file_path], "node_path": str(new_node.get_path()) }
 
 func _remove_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
@@ -244,7 +244,7 @@ func _remove_node(params: Dictionary) -> Dictionary:
 		
 	target.queue_free()
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó '%s' removido com sucesso." % node_path }
+	return { "status": "success", "message": "Nó '%s' removido com sucesso da cena '%s'." % [node_path, scene_root.scene_file_path] }
 
 func _set_node_property(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
@@ -271,7 +271,7 @@ func _set_node_property(params: Dictionary) -> Dictionary:
 	value = _coerce_value(target, property_name, value)
 	target.set(property_name, value)
 	_mark_scene_modified()
-	return { "status": "success", "message": "Propriedade '%s' de '%s' atualizada para %s." % [property_name, target.name, str(value)] }
+	return { "status": "success", "message": "Propriedade '%s' de '%s' atualizada para %s na cena '%s'." % [property_name, target.name, str(value), scene_root.scene_file_path] }
 
 # Converte Arrays/Strings JSON em tipos nativos (Vector2/3, Color) baseado no valor atual da propriedade
 func _coerce_value(target: Object, property_name: String, value: Variant) -> Variant:
@@ -525,7 +525,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 			return { "status": "error", "message": "Script '%s' salvo no disco, mas falhou ao anexar: nó '%s' não encontrado na cena '%s'." % [script_path, node_path, scene_root.name] }
 		target.set_script(loaded_script)
 		_mark_scene_modified()
-		return { "status": "success", "message": "Script %s criado, anexado ao nó '%s' e salvo." % [script_path, target.name] }
+		return { "status": "success", "message": "Script %s criado, anexado ao nó '%s' da cena '%s' e salvo." % [script_path, target.name, scene_root.scene_file_path] }
 			
 	return { "status": "success", "message": "Script %s criado e salvo com sucesso no disco." % script_path }
 
