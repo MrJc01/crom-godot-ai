@@ -514,13 +514,17 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	if editor_plugin and editor_plugin.get_editor_interface():
 		scene_root = editor_plugin.get_editor_interface().get_edited_scene_root()
 		
-	if scene_root:
+	var has_node_path: bool = params.has("node_path")
+	if has_node_path:
+		if not scene_root:
+			return { "status": "error", "message": "Script '%s' salvo no disco, mas falhou ao anexar: nenhuma cena aberta no editor. Use 'godot_open_scene' para abrir a cena antes de anexar o script." % script_path }
 		var target = _resolve_node(scene_root, node_path)
-		if target:
-			target.set_script(loaded_script)
-			return { "status": "success", "message": "Script %s criado e anexado ao nó '%s'." % [script_path, target.name] }
+		if not target:
+			return { "status": "error", "message": "Script '%s' salvo no disco, mas falhou ao anexar: nó '%s' não encontrado na cena '%s'." % [script_path, node_path, scene_root.name] }
+		target.set_script(loaded_script)
+		return { "status": "success", "message": "Script %s criado e anexado ao nó '%s'." % [script_path, target.name] }
 			
-	return { "status": "success", "message": "Script %s criado e salvo com sucesso." % script_path }
+	return { "status": "success", "message": "Script %s criado e salvo com sucesso no disco." % script_path }
 
 func _play_scene(params: Dictionary) -> Dictionary:
 	var scene_path: String = str(params.get("scene_path", ""))
