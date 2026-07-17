@@ -34,8 +34,26 @@ func process_command(command_json: String) -> Dictionary:
 			return _remove_node(params)
 		"set_node_property":
 			return _set_node_property(params)
+		"move_node":
+			return _move_node(params)
+		"rename_node":
+			return _rename_node(params)
+		"reparent_node":
+			return _reparent_node(params)
 		"create_and_attach_script":
 			return _create_and_attach_script(params)
+		"create_scene":
+			return _create_scene(params)
+		"instantiate_scene":
+			return _instantiate_scene(params)
+		"save_scene":
+			return _save_scene()
+		"open_scene":
+			return _open_scene(params)
+		"set_project_setting":
+			return _set_project_setting(params)
+		"add_input_action":
+			return _add_input_action(params)
 		"play_scene":
 			return _play_scene(params)
 		"stop_scene":
@@ -184,8 +202,9 @@ func _add_node(params: Dictionary) -> Dictionary:
 	if params.has("properties") and params["properties"] is Dictionary:
 		for prop in params["properties"]:
 			if prop in new_node:
-				new_node.set(prop, params["properties"][prop])
-				
+				new_node.set(prop, _coerce_value(new_node, prop, params["properties"][prop]))
+
+	_mark_scene_modified()
 	return { "status": "success", "message": "Nó '%s' (%s) adicionado em '%s'." % [node_name, node_type, parent_node.name], "node_path": str(new_node.get_path()) }
 
 func _remove_node(params: Dictionary) -> Dictionary:
@@ -205,6 +224,7 @@ func _remove_node(params: Dictionary) -> Dictionary:
 		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
 		
 	target.queue_free()
+	_mark_scene_modified()
 	return { "status": "success", "message": "Nó '%s' removido com sucesso." % node_path }
 
 func _set_node_property(params: Dictionary) -> Dictionary:
@@ -229,14 +249,210 @@ func _set_node_property(params: Dictionary) -> Dictionary:
 	if not (property_name in target):
 		return { "status": "error", "message": "Propriedade '%s' não existe no nó '%s'." % [property_name, target.name] }
 		
-	# Lida com conversão básica de tipos comuns (Vetor2, Vetor3, etc se virem em Dict/Array)
-	if value is Array and value.size() == 2 and property_name == "position":
-		value = Vector2(value[0], value[1])
-	elif value is Array and value.size() == 3 and property_name == "position":
-		value = Vector3(value[0], value[1], value[2])
-		
+	value = _coerce_value(target, property_name, value)
 	target.set(property_name, value)
+	_mark_scene_modified()
 	return { "status": "success", "message": "Propriedade '%s' de '%s' atualizada para %s." % [property_name, target.name, str(value)] }
+
+# Converte Arrays/Strings JSON em tipos nativos (Vector2/3, Color) baseado no valor atual da propriedade
+func _coerce_value(target: Object, property_name: String, value: Variant) -> Variant:
+	var current = target.get(property_name)
+	if value is Array:
+		if current is Vector2 and value.size() >= 2:
+			return Vector2(value[0], value[1])
+		if current is Vector3 and value.size() >= 3:
+			return Vector3(value[0], value[1], value[2])
+		if current is Color and value.size() >= 3:
+			return Color(value[0], value[1], value[2], value[3] if value.size() > 3 else 1.0)
+	if value is String and current is Color:
+		return Color.from_string(value, Color.WHITE)
+	return value
+
+func _get_edited_scene_root() -> Node:
+	if editor_plugin and editor_plugin.get_editor_interface():
+		return editor_plugin.get_editor_interface().get_edited_scene_root()
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		return tree.current_scene
+	return null
+
+func _mark_scene_modified() -> void:
+	if editor_plugin and Engine.is_editor_hint():
+		EditorInterface.mark_scene_as_unsaved()
+
+func _move_node(params: Dictionary) -> Dictionary:
+	var node_path: String = str(params.get("node_path", ""))
+	var pos = params.get("position")
+	if node_path == "" or not (pos is Array) or pos.size() < 2:
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'node_path' e 'position' ([x, y] ou [x, y, z])." }
+
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var target = scene_root.get_node_or_null(node_path) if node_path != "." else scene_root
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	if target is Node3D:
+		target.position = Vector3(pos[0], pos[1], pos[2] if pos.size() > 2 else target.position.z)
+	elif target is Node2D or target is Control:
+		target.position = Vector2(pos[0], pos[1])
+	else:
+		return { "status": "error", "message": "Nó '%s' (%s) não possui posição espacial." % [target.name, target.get_class()] }
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' movido para %s." % [target.name, str(target.position)] }
+
+func _rename_node(params: Dictionary) -> Dictionary:
+	var node_path: String = str(params.get("node_path", ""))
+	var new_name: String = str(params.get("new_name", "")).strip_edges()
+	if node_path == "" or new_name == "":
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'node_path' e 'new_name'." }
+
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var target = scene_root.get_node_or_null(node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var old_name := String(target.name)
+	target.name = new_name
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' renomeado para '%s'." % [old_name, target.name], "node_path": str(target.get_path()) }
+
+func _reparent_node(params: Dictionary) -> Dictionary:
+	var node_path: String = str(params.get("node_path", ""))
+	var new_parent_path: String = str(params.get("new_parent_path", ""))
+	if node_path == "" or new_parent_path == "":
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'node_path' e 'new_parent_path'." }
+
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var target = scene_root.get_node_or_null(node_path)
+	var new_parent = scene_root if new_parent_path == "." else scene_root.get_node_or_null(new_parent_path)
+	if not target or not new_parent:
+		return { "status": "error", "message": "Nó ou novo pai não encontrado ('%s' -> '%s')." % [node_path, new_parent_path] }
+	if target == scene_root:
+		return { "status": "error", "message": "Não é possível reparentar o nó raiz da cena." }
+
+	target.reparent(new_parent)
+	target.owner = scene_root
+	for child in target.find_children("*", "", true, false):
+		child.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' movido para debaixo de '%s'." % [target.name, new_parent.name], "node_path": str(target.get_path()) }
+
+func _create_scene(params: Dictionary) -> Dictionary:
+	var scene_path: String = str(params.get("scene_path", ""))
+	var root_type: String = str(params.get("root_type", "Node2D"))
+	var root_name: String = str(params.get("root_name", scene_path.get_file().get_basename().to_pascal_case()))
+
+	if scene_path == "" or not scene_path.ends_with(".tscn"):
+		return { "status": "error", "message": "O parâmetro 'scene_path' deve terminar em .tscn." }
+	if not ClassDB.class_exists(root_type) or not ClassDB.is_parent_class(root_type, "Node"):
+		return { "status": "error", "message": "Tipo de nó raiz inválido: '%s'." % root_type }
+
+	var root = ClassDB.instantiate(root_type)
+	root.name = root_name if root_name != "" else "Root"
+
+	var packed := PackedScene.new()
+	var pack_err := packed.pack(root)
+	if pack_err != OK:
+		root.free()
+		return { "status": "error", "message": "Falha ao empacotar a cena (erro %d)." % pack_err }
+
+	var parent_dir := scene_path.get_base_dir()
+	if parent_dir != "" and parent_dir != "res://" and not DirAccess.dir_exists_absolute(parent_dir):
+		DirAccess.make_dir_recursive_absolute(parent_dir)
+
+	var save_err := ResourceSaver.save(packed, scene_path)
+	root.free()
+	if save_err != OK:
+		return { "status": "error", "message": "Falha ao salvar a cena em '%s' (erro %d)." % [scene_path, save_err] }
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Cena '%s' criada com raiz %s ('%s')." % [scene_path, root_type, root.name if is_instance_valid(root) else root_name] }
+
+func _instantiate_scene(params: Dictionary) -> Dictionary:
+	var scene_path: String = str(params.get("scene_path", ""))
+	var parent_path: String = str(params.get("parent_path", "."))
+	var node_name: String = str(params.get("node_name", ""))
+
+	if not FileAccess.file_exists(scene_path):
+		return { "status": "error", "message": "Cena não encontrada: '%s'." % scene_path }
+	var packed = load(scene_path)
+	if not (packed is PackedScene):
+		return { "status": "error", "message": "O arquivo '%s' não é uma PackedScene válida." % scene_path }
+
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor para instanciar." }
+	var parent_node: Node = scene_root
+	if parent_path != "." and parent_path != "":
+		parent_node = scene_root.get_node_or_null(parent_path)
+		if not parent_node:
+			return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
+
+	var instance: Node = packed.instantiate()
+	if node_name != "":
+		instance.name = node_name
+	parent_node.add_child(instance)
+	instance.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "message": "Instância de '%s' adicionada em '%s'." % [scene_path, parent_node.name], "node_path": str(instance.get_path()) }
+
+func _save_scene() -> Dictionary:
+	if editor_plugin and Engine.is_editor_hint():
+		var err = EditorInterface.save_scene()
+		if err != OK:
+			return { "status": "error", "message": "Falha ao salvar a cena aberta (erro %d)." % err }
+		var root := _get_edited_scene_root()
+		var path := root.scene_file_path if root else ""
+		return { "status": "success", "message": "Cena salva com sucesso%s." % (" em '%s'" % path if path != "" else "") }
+	return { "status": "error", "message": "Salvar cena só está disponível dentro do Editor." }
+
+func _open_scene(params: Dictionary) -> Dictionary:
+	var scene_path: String = str(params.get("scene_path", ""))
+	if not FileAccess.file_exists(scene_path):
+		return { "status": "error", "message": "Cena não encontrada: '%s'." % scene_path }
+	if editor_plugin and Engine.is_editor_hint():
+		EditorInterface.open_scene_from_path(scene_path)
+		return { "status": "success", "message": "Cena '%s' aberta no editor." % scene_path }
+	return { "status": "error", "message": "Abrir cena só está disponível dentro do Editor." }
+
+func _set_project_setting(params: Dictionary) -> Dictionary:
+	var setting: String = str(params.get("setting", ""))
+	if setting == "" or not params.has("value"):
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'setting' e 'value'." }
+	if setting.begins_with("autoload") or setting.begins_with("editor_plugins"):
+		return { "status": "error", "message": "Alterar '%s' via agente não é permitido por segurança." % setting }
+
+	ProjectSettings.set_setting(setting, params["value"])
+	var err := ProjectSettings.save()
+	if err != OK:
+		return { "status": "error", "message": "Configuração aplicada em memória, mas falhou ao salvar project.godot (erro %d)." % err }
+	return { "status": "success", "message": "Configuração '%s' definida para %s e salva no project.godot." % [setting, str(params["value"])] }
+
+func _add_input_action(params: Dictionary) -> Dictionary:
+	var action_name: String = str(params.get("action_name", "")).strip_edges()
+	var keys = params.get("keys", [])
+	if action_name == "" or not (keys is Array) or keys.is_empty():
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'action_name' e 'keys' (ex: [\"W\", \"Up\"])." }
+
+	var events: Array = []
+	for k in keys:
+		var key_ev := InputEventKey.new()
+		var keycode := OS.find_keycode_from_string(str(k))
+		if keycode == KEY_NONE:
+			return { "status": "error", "message": "Tecla desconhecida: '%s'. Use nomes como 'W', 'Space', 'Up', 'Escape'." % str(k) }
+		key_ev.physical_keycode = keycode
+		events.append(key_ev)
+
+	ProjectSettings.set_setting("input/" + action_name, { "deadzone": 0.5, "events": events })
+	var err := ProjectSettings.save()
+	if err != OK:
+		return { "status": "error", "message": "Ação criada em memória, mas falhou ao salvar project.godot (erro %d)." % err }
+	return { "status": "success", "message": "Ação de input '%s' criada com %d tecla(s) e salva." % [action_name, events.size()] }
 
 func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", "."))

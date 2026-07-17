@@ -46,7 +46,7 @@ func _build_layout() -> void:
 	card_ia.add_content_node(grid)
 	
 	_add_config_row(grid, "Provedor e Modelo:", "openrouter : google/gemini-2.5-flash", false)
-	_add_config_row(grid, "Chave de API:", "sk-or-v1-04914... (Configurado)", true)
+	_add_config_row(grid, "Chave de API:", "Configurada no painel do Crom Agente (user://)", true)
 	
 	var lbl_ws := Label.new()
 	lbl_ws.text = "Porta WebSocket MCP:"

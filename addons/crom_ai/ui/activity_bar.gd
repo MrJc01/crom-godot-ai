@@ -31,12 +31,9 @@ func _ready() -> void:
 	_vbox.offset_right = -6
 	add_child(_vbox)
 	
-	var is_master := (ProjectSettings.globalize_path("res://").simplify_path() == "/home/j/Documentos/GitHub/crom-godot-ai")
-	
 	# Ícones de navegação principal (topo)
 	_add_nav_button("home",      "home",     "Início (Dashboard)")
-	if is_master:
-		_add_nav_button("projects",  "folder",   "Meus Projetos")
+	_add_nav_button("projects",  "folder",   "Projetos")
 	_add_nav_button("playtest",  "gamepad",  "Playtest (IA Joga)")
 	_add_nav_button("settings",  "settings", "Configurações")
 	

@@ -8,6 +8,8 @@ extends EditorPlugin
 var websocket_server: Node = null
 var command_processor: Node = null
 var chat_dock: Control = null
+var _ctx_menu_files = null
+var _ctx_menu_nodes = null
 
 func _enter_tree() -> void:
 	print("=========================================================")
@@ -37,15 +39,43 @@ func _enter_tree() -> void:
 	if DockScene:
 		chat_dock = DockScene.instantiate()
 		add_control_to_dock(EditorPlugin.DOCK_SLOT_RIGHT_UL, chat_dock)
-		print("[CromAI Bridge] Painel de Chat Lateral aberto e fixado na barra direita do Editor Godot!")
-			
+		print("[CromAI Bridge] Painel do Crom Agente fixado na barra direita do Editor Godot!")
+
+	# Registra o menu de contexto "Enviar para o Crom Agente" (arquivos e nós)
+	_register_context_menus()
+
 	print("=========================================================")
+
+func _register_context_menus() -> void:
+	if not ClassDB.class_exists("EditorContextMenuPlugin"):
+		return
+	var CtxPlugin = load("res://addons/crom_ai/ui/context_menu_plugin.gd")
+	if not CtxPlugin:
+		return
+
+	_ctx_menu_files = CtxPlugin.new()
+	_ctx_menu_files.mode = "files"
+	_ctx_menu_files.chat_dock = chat_dock
+	add_context_menu_plugin(EditorContextMenuPlugin.CONTEXT_SLOT_FILESYSTEM, _ctx_menu_files)
+
+	_ctx_menu_nodes = CtxPlugin.new()
+	_ctx_menu_nodes.mode = "nodes"
+	_ctx_menu_nodes.chat_dock = chat_dock
+	add_context_menu_plugin(EditorContextMenuPlugin.CONTEXT_SLOT_SCENE_TREE, _ctx_menu_nodes)
+	print("[CromAI Bridge] Menu de contexto 'Enviar para o Crom Agente' registrado (FileSystem + Scene Tree).")
 
 func _process(_delta: float) -> void:
 	if websocket_server and websocket_server.has_method("process_network"):
 		websocket_server.process_network()
 
 func _exit_tree() -> void:
+	if _ctx_menu_files:
+		remove_context_menu_plugin(_ctx_menu_files)
+		_ctx_menu_files = null
+	if _ctx_menu_nodes:
+		remove_context_menu_plugin(_ctx_menu_nodes)
+		_ctx_menu_nodes = null
+
 	if chat_dock:
 		remove_control_from_docks(chat_dock)
 		chat_dock.queue_free()

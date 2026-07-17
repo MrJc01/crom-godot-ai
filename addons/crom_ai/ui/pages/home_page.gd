@@ -2,179 +2,204 @@ class_name HomePage
 extends Control
 
 const ThemeConstants = preload("res://addons/crom_ai/core/theme_constants.gd")
+const StyleFactory = preload("res://addons/crom_ai/core/style_factory.gd")
 const IconProvider = preload("res://addons/crom_ai/core/icon_provider.gd")
 const ProjectService = preload("res://addons/crom_ai/core/project_service.gd")
 const GameRegistry = preload("res://addons/crom_ai/core/game_registry.gd")
-const DashboardCard = preload("res://addons/crom_ai/ui/components/dashboard_card.gd")
 const StatBadge = preload("res://addons/crom_ai/ui/components/stat_badge.gd")
 
+# ==============================================================================
+# Home Page — Dashboard minimalista, dev-first.
+# Saudação + projetos recentes + status do agente + ações rápidas.
+# ==============================================================================
 
-# ==============================================================================
-# Home Page — Dashboard com 4 Cards focados nos dados do usuário
-# Usa ícones SVG do IconProvider ao invés de emojis
-# ==============================================================================
+signal navigate_requested(page_id: String)
+signal open_project_requested(path: String)
 
 func _ready() -> void:
-	_build_dashboard()
+	_build()
 
-func _build_dashboard() -> void:
+func _build() -> void:
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, ThemeConstants.SPACING_XL)
+	add_child(margin)
+
 	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
-	
-	var main_vbox := VBoxContainer.new()
-	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_vbox.add_theme_constant_override("separation", ThemeConstants.SPACING_XL)
-	scroll.add_child(main_vbox)
-	
-	# Cabeçalho com ícone SVG
-	var header_box := VBoxContainer.new()
-	header_box.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
-	main_vbox.add_child(header_box)
-	
+	margin.add_child(scroll)
+
+	var root := VBoxContainer.new()
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", ThemeConstants.SPACING_XL)
+	scroll.add_child(root)
+
+	_build_header(root)
+
+	# Duas colunas: recentes (larga) + lateral (agente + ações)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", ThemeConstants.SPACING_LG)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(columns)
+
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_stretch_ratio = 1.6
+	left.add_theme_constant_override("separation", ThemeConstants.SPACING_MD)
+	columns.add_child(left)
+	_build_recent_projects(left)
+
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", ThemeConstants.SPACING_MD)
+	columns.add_child(right)
+	_build_agent_card(right)
+	_build_quick_actions(right)
+
+func _build_header(root: VBoxContainer) -> void:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", ThemeConstants.SPACING_XS)
+	root.add_child(box)
+
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
-	header_box.add_child(title_row)
-	
-	title_row.add_child(IconProvider.icon_rect("zap", 28, ThemeConstants.ACCENT_BLUE))
-	
-	var is_master := (ProjectSettings.globalize_path("res://").simplify_path() == "/home/j/Documentos/GitHub/crom-godot-ai")
-	
+	box.add_child(title_row)
+	title_row.add_child(IconProvider.icon_rect("zap", 26, ThemeConstants.ACCENT_BLUE))
+
 	var title := Label.new()
-	if is_master:
-		title.text = "Bem-vindo ao CromAI Godot Bridge & Agente ReAct"
-	else:
-		title.text = "CromAI Arcade Hub"
+	title.text = "Crom Hub"
 	title.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_H1)
 	title.add_theme_color_override("font_color", ThemeConstants.TEXT_PRIMARY)
 	title_row.add_child(title)
-	
+
 	var subtitle := Label.new()
-	if is_master:
-		subtitle.text = "Uma arquitetura limpa e organizada para unificar inteligência artificial multimodal dentro do Godot com zero burocracia manual. Inspirado no VS Code, mas reimaginado como um hub de designer."
-	else:
-		subtitle.text = "Seu hub de jogos criados por IA. Selecione um dos minijogos na barra lateral ou use o agente de chat na IDE para gerar e testar novas experiências em tempo real."
+	subtitle.text = "Um ambiente de desenvolvimento Godot com o Crom Agente acoplado. Crie um projeto e converse com o agente na aba lateral da IDE para construir, mover e configurar tudo."
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD
 	subtitle.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_BODY)
 	subtitle.add_theme_color_override("font_color", ThemeConstants.TEXT_SECONDARY)
-	header_box.add_child(subtitle)
-	
-	# Grid 2x2 de Dashboard Cards
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", ThemeConstants.SPACING_LG)
-	grid.add_theme_constant_override("v_separation", ThemeConstants.SPACING_LG)
-	main_vbox.add_child(grid)
-	
-	# Card 1: Meus Projetos (Apenas no Master)
-	if is_master:
-		var projects := ProjectService.list_projects()
-		var card_projects := DashboardCard.new(
-			"Meus Projetos",
-			"Gerencie e acesse seus projetos Godot.",
-			ThemeConstants.ACCENT_BLUE
-		)
-		card_projects.add_badge(StatBadge.info("%d projetos" % projects.size()))
-		card_projects.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		
-		var total_scenes := 0
-		var total_scripts := 0
-		for p in projects:
-			total_scenes += p.get("scenes", 0)
-			total_scripts += p.get("scripts", 0)
-		
-		var proj_row_1 := _icon_label_row("folder", "%d projetos instalados" % projects.size(), ThemeConstants.TEXT_PRIMARY)
-		card_projects.add_content_node(proj_row_1)
-		var proj_row_2 := _icon_label_row("monitor", "%d cenas  ·  %d scripts" % [total_scenes, total_scripts], ThemeConstants.TEXT_SECONDARY)
-		card_projects.add_content_node(proj_row_2)
-		if projects.size() > 0:
-			card_projects.add_content_label("Último: %s" % projects[0].get("display_name", "--"), ThemeConstants.TEXT_MUTED)
-		grid.add_child(card_projects)
-	
-	# Card 2: Agente ReAct
-	var card_agent := DashboardCard.new(
-		"Agente ReAct",
-		"Motor ReAct: em res://addons/crom_ai",
-		ThemeConstants.ACCENT_TEAL
-	)
-	card_agent.add_badge(StatBadge.active("ATIVO"))
-	card_agent.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card_agent.add_content_node(_icon_label_row("bot", "google/gemini-2.5-flash", ThemeConstants.TEXT_PRIMARY))
-	card_agent.add_content_node(_icon_label_row("wifi", "OpenRouter API", ThemeConstants.TEXT_SECONDARY))
-	card_agent.add_content_label("Ativado na IDE (Aba lateral 'CromAI Chat')", ThemeConstants.TEXT_MUTED)
-	grid.add_child(card_agent)
-	
-	# Card 3: Jogos Criados
-	var available := GameRegistry.get_available_count()
-	var total := GameRegistry.get_total_count()
-	var card_games := DashboardCard.new(
-		"Jogos Criados",
-		"%d/%d minijogos gerados pela IA" % [available, total],
-		ThemeConstants.ACCENT_GREEN
-	)
-	card_games.add_badge(StatBadge.new("%d/%d" % [available, total], ThemeConstants.BADGE_ACTIVE_BG, ThemeConstants.ACCENT_GREEN))
-	card_games.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var progress_bar := ProgressBar.new()
-	progress_bar.custom_minimum_size = Vector2(0, 16)
-	progress_bar.min_value = 0
-	progress_bar.max_value = total
-	progress_bar.value = available
-	progress_bar.show_percentage = false
-	card_games.add_content_node(progress_bar)
-	
-	var types_2d := 0
-	var types_3d := 0
-	var types_ui := 0
-	for g in GameRegistry.get_all():
-		match g["type"]:
-			"3D": types_3d += 1
-			"UI": types_ui += 1
-			_: types_2d += 1
-	card_games.add_content_node(_icon_label_row("gamepad", "2D: %d  ·  3D: %d  ·  UI: %d" % [types_2d, types_3d, types_ui], ThemeConstants.TEXT_SECONDARY))
-	grid.add_child(card_games)
-	
-	# Card 4: Visão Geral do Sistema
-	var card_system := DashboardCard.new(
-		"Visão Geral do Sistema",
-		"Godot 4.6 | Forward+ | VS Code Dark+",
-		ThemeConstants.ACCENT_PURPLE
-	)
-	card_system.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card_system.add_content_node(_icon_label_row("cpu", "Godot %s" % Engine.get_version_info().get("string", "4.6"), ThemeConstants.TEXT_PRIMARY))
-	card_system.add_content_node(_icon_label_row("layout", "Renderer: Forward+", ThemeConstants.TEXT_SECONDARY))
-	card_system.add_content_node(_icon_label_row("check_circle", "Plugins: CromAI Bridge Ativo", ThemeConstants.ACCENT_GREEN))
-	card_system.add_content_node(_icon_label_row("wifi", "WebSocket: Porta 8080", ThemeConstants.TEXT_MUTED))
-	grid.add_child(card_system)
-	
-	# Comandos Rápidos
-	main_vbox.add_child(HSeparator.new())
-	
-	var cmd_row := HBoxContainer.new()
-	cmd_row.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
-	main_vbox.add_child(cmd_row)
-	cmd_row.add_child(IconProvider.icon_rect("terminal", 16, ThemeConstants.ACCENT_YELLOW))
-	var cmd_title := Label.new()
-	cmd_title.text = "Comandos Rápidos do Chat Lateral"
-	cmd_title.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_H3)
-	cmd_title.add_theme_color_override("font_color", ThemeConstants.ACCENT_YELLOW)
-	cmd_row.add_child(cmd_title)
-	
-	var cmd_info := Label.new()
-	cmd_info.text = " · /clean — Zera e limpa o diretório de jogos gerados\n · /benchmark — Dispara IA para construir, checar código e gerar relatórios\n · F5 / Play — Abre este Hub e reproduz jogos em 60 FPS e 16:9"
-	cmd_info.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_BODY)
-	cmd_info.add_theme_color_override("font_color", ThemeConstants.TEXT_SECONDARY)
-	main_vbox.add_child(cmd_info)
+	box.add_child(subtitle)
 
-# Helper: cria uma linha HBox com ícone SVG + texto
-func _icon_label_row(icon_name: String, text: String, color: Color) -> HBoxContainer:
+func _build_recent_projects(col: VBoxContainer) -> void:
+	col.add_child(_section_title("folder", "Projetos recentes", ThemeConstants.ACCENT_BLUE))
+
+	var projects := ProjectService.list_projects()
+	if projects.is_empty():
+		var empty := Label.new()
+		empty.text = "Nenhum projeto ainda. Vá em Projetos para criar o primeiro."
+		empty.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_SMALL)
+		empty.add_theme_color_override("font_color", ThemeConstants.TEXT_MUTED)
+		col.add_child(empty)
+	else:
+		var shown := 0
+		for p in projects:
+			if shown >= 5:
+				break
+			col.add_child(_recent_row(p))
+			shown += 1
+
+	var see_all := Button.new()
+	see_all.text = "Ver todos os projetos"
+	see_all.flat = true
+	see_all.add_theme_color_override("font_color", ThemeConstants.ACCENT_BLUE)
+	see_all.pressed.connect(func(): navigate_requested.emit("projects"))
+	col.add_child(see_all)
+
+func _recent_row(p: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	StyleFactory.apply_to(card, StyleFactory.card())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", ThemeConstants.SPACING_MD)
+	card.add_child(row)
+
+	var is_fav: bool = p.get("favorite", false)
+	row.add_child(IconProvider.icon_rect("star" if is_fav else "folder", 18,
+		ThemeConstants.ACCENT_YELLOW if is_fav else ThemeConstants.TEXT_SECONDARY))
+
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation", 0)
+	row.add_child(info)
+
+	var name_lbl := Label.new()
+	name_lbl.text = p.get("display_name", "Projeto")
+	name_lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_BODY)
+	name_lbl.add_theme_color_override("font_color", ThemeConstants.TEXT_PRIMARY)
+	info.add_child(name_lbl)
+
+	var path_lbl := Label.new()
+	path_lbl.text = "%s  ·  %d cenas · %d scripts" % [p.get("path", ""), p.get("scenes", 0), p.get("scripts", 0)]
+	path_lbl.clip_text = true
+	path_lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_TINY)
+	path_lbl.add_theme_color_override("font_color", ThemeConstants.TEXT_MUTED)
+	info.add_child(path_lbl)
+
+	var open_btn := Button.new()
+	open_btn.text = "Abrir"
+	open_btn.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_SMALL)
+	open_btn.pressed.connect(func(): open_project_requested.emit(p.get("path", "")))
+	row.add_child(open_btn)
+	return card
+
+func _build_agent_card(col: VBoxContainer) -> void:
+	col.add_child(_section_title("bot", "Crom Agente", ThemeConstants.ACCENT_TEAL))
+
+	var card := PanelContainer.new()
+	StyleFactory.apply_to(card, StyleFactory.card_with_accent(ThemeConstants.ACCENT_TEAL))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
+	card.add_child(box)
+
+	var status_row := HBoxContainer.new()
+	status_row.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
+	box.add_child(status_row)
+	var dot := ColorRect.new()
+	dot.custom_minimum_size = Vector2(8, 8)
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dot.color = ThemeConstants.ACCENT_GREEN
+	status_row.add_child(dot)
+	var status_lbl := Label.new()
+	status_lbl.text = "Acoplado ao projeto aberto"
+	status_lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_SMALL)
+	status_lbl.add_theme_color_override("font_color", ThemeConstants.TEXT_PRIMARY)
+	status_row.add_child(status_lbl)
+
+	box.add_child(_bullet("Chat na aba lateral da IDE (Crom Agente)"))
+	box.add_child(_bullet("Lê e edita scripts, cenas e nós"))
+	box.add_child(_bullet("Move objetos e configura o projeto"))
+	col.add_child(card)
+
+func _build_quick_actions(col: VBoxContainer) -> void:
+	col.add_child(_section_title("zap", "Ações rápidas", ThemeConstants.ACCENT_YELLOW))
+
+	col.add_child(_action_button("plus", "Criar novo projeto", func(): navigate_requested.emit("projects")))
+	col.add_child(_action_button("gamepad", "Playtest com IA", func(): navigate_requested.emit("playtest")))
+	col.add_child(_action_button("settings", "Configurar agente & MCP", func(): navigate_requested.emit("settings")))
+
+func _action_button(icon: String, text: String, cb: Callable) -> Button:
+	var btn := Button.new()
+	btn.text = "  " + text
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.icon = IconProvider.get_icon(icon, 15, ThemeConstants.TEXT_PRIMARY)
+	btn.custom_minimum_size = Vector2(0, 38)
+	btn.pressed.connect(cb)
+	return btn
+
+func _section_title(icon: String, text: String, color: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", ThemeConstants.SPACING_SM)
-	row.add_child(IconProvider.icon_rect(icon_name, 16, color))
+	row.add_child(IconProvider.icon_rect(icon, 16, color))
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_BODY)
+	lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_H3)
 	lbl.add_theme_color_override("font_color", color)
 	row.add_child(lbl)
 	return row
+
+func _bullet(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = "· " + text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	lbl.add_theme_font_size_override("font_size", ThemeConstants.FONT_SIZE_SMALL)
+	lbl.add_theme_color_override("font_color", ThemeConstants.TEXT_SECONDARY)
+	return lbl

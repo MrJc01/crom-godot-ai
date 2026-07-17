@@ -468,7 +468,7 @@ func _create_page_settings() -> Control:
 	input_model_name = LineEdit.new(); input_model_name.text = "openrouter : google/gemini-2.5-flash"; input_model_name.custom_minimum_size = Vector2(350, 32); grid.add_child(input_model_name)
 	
 	var l2 = Label.new(); l2.text = "Chave de API (OpenRouter):"; grid.add_child(l2)
-	input_api_key = LineEdit.new(); input_api_key.text = "sk-or-v1-04914... (Configurado)"; input_api_key.secret = true; input_api_key.custom_minimum_size = Vector2(350, 32); grid.add_child(input_api_key)
+	input_api_key = LineEdit.new(); input_api_key.placeholder_text = "Configure em user://crom_ai_config.cfg"; input_api_key.secret = true; input_api_key.custom_minimum_size = Vector2(350, 32); grid.add_child(input_api_key)
 	
 	var l3 = Label.new(); l3.text = "Porta do WebSocket MCP:"; grid.add_child(l3)
 	var p_lbl = Label.new(); p_lbl.text = "8080 (Ativo e aguardando conexões de agentes externos)"; p_lbl.add_theme_color_override("font_color", COLOR_GREEN); grid.add_child(p_lbl)
@@ -614,7 +614,11 @@ func _init_agent_and_monitor() -> void:
 	var EngineClass = load("res://addons/crom_ai/native_react_engine.gd")
 	if EngineClass:
 		engine = EngineClass.new(proc); add_child(engine)
-		engine.set_config("openrouter", "google/gemini-2.5-flash", "sk-or-v1-key-removed-by-antigravity")
+		var _cfg := ConfigFile.new()
+		var _prov := "openrouter"; var _model := "google/gemini-2.5-flash"; var _key := ""
+		if _cfg.load("user://crom_ai_config.cfg") == OK:
+			_prov = str(_cfg.get_value("ai", "provider", _prov)); _model = str(_cfg.get_value("ai", "model", _model)); _key = str(_cfg.get_value("ai", "api_key", ""))
+		engine.set_config(_prov, _model, _key)
 		engine.message_added.connect(func(role, text): if role == "tool_call": _log("[color=#fab387]🤖 Ferramenta Acionada:[/color] " + text.substr(0, 100)))
 		engine.react_finished.connect(func(ans): _log("[color=#cba6f7]🤖 Resposta do Agente:[/color]\n" + ans))
 

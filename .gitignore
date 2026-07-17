@@ -14,4 +14,14 @@ docs/html/
 
 # Generated games folder (procedural AI tests)
 games/
+
+# Crom Agente: config local do workspace, segredos e histórico de chat
 .crom/
+addons/crom_ai/chat_history/
+
+# Segredos e chaves (nunca versionar)
+*.env
+.env
+
+# Binários Go compilados localmente (o daemon vem via release em addons/crom_ai/bin/)
+crom-godot-agent/go/crom-godot-agent

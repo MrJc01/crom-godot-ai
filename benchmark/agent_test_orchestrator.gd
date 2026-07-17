@@ -115,7 +115,15 @@ func _initialize() -> void:
 	engine.name = "NativeReActEngine"
 	root.add_child(engine)
 	
-	engine.set_config("openrouter", "google/gemini-2.5-flash", "sk-or-v1-key-removed-by-antigravity")
+	var _cfg := ConfigFile.new()
+	var _prov := "openrouter"
+	var _model := "google/gemini-2.5-flash"
+	var _key := ""
+	if _cfg.load("user://crom_ai_config.cfg") == OK:
+		_prov = str(_cfg.get_value("ai", "provider", _prov))
+		_model = str(_cfg.get_value("ai", "model", _model))
+		_key = str(_cfg.get_value("ai", "api_key", ""))
+	engine.set_config(_prov, _model, _key)
 	
 	engine.message_added.connect(func(role, text):
 		if role == "tool_call" or role == "tool_res":

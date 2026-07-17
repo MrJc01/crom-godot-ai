@@ -94,6 +94,11 @@ func _build_layout() -> void:
 	var settings_page = _SettingsPage.new()
 	var benchmark_page = _BenchmarkPage.new()
 	
+	home_page.navigate_requested.connect(_navigate_to)
+	home_page.open_project_requested.connect(func(path):
+		_log("Abrindo Editor em: " + path)
+		_ProjectService.open_in_editor(path)
+	)
 	projects_page.log_requested.connect(_log)
 	playtest_page.log_requested.connect(_log)
 	settings_page.log_requested.connect(_log)
@@ -166,7 +171,8 @@ func _init_services() -> void:
 		if EngineClass:
 			_engine = EngineClass.new(proc)
 			add_child(_engine)
-			_engine.set_config("openrouter", "google/gemini-2.5-flash", "sk-or-v1-key-removed-by-antigravity")
+			var ai_cfg := _load_agent_config()
+			_engine.set_config(ai_cfg["provider"], ai_cfg["model"], ai_cfg["api_key"])
 			_engine.message_added.connect(func(role, text):
 				if role == "tool_call": _log("[color=#fab387]Tool:[/color] " + text.substr(0, 120))
 			)
@@ -226,3 +232,14 @@ func _on_test_connectivity() -> void:
 func _log(msg: String) -> void:
 	if _terminal:
 		_terminal.log_message(msg)
+
+# Lê a config salva pelo painel do Crom Agente (user://crom_ai_config.cfg).
+# Sem chave hardcoded: se não houver configuração, as ações de IA pedem setup.
+func _load_agent_config() -> Dictionary:
+	var result := { "provider": "openrouter", "model": "google/gemini-2.5-flash", "api_key": "" }
+	var cfg := ConfigFile.new()
+	if cfg.load("user://crom_ai_config.cfg") == OK:
+		result["provider"] = str(cfg.get_value("ai", "provider", result["provider"]))
+		result["model"] = str(cfg.get_value("ai", "model", result["model"]))
+		result["api_key"] = str(cfg.get_value("ai", "api_key", ""))
+	return result

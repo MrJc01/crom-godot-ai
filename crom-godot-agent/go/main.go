@@ -13,7 +13,14 @@ func main() {
 	modelFlag := flag.String("model", "llama3", "Nome do modelo (ex: llama3, gpt-4o, google/gemini-2.5-flash)")
 	portFlag := flag.Int("port", 8080, "Porta WebSocket do plugin @tool rodando no Godot Editor")
 	promptFlag := flag.String("prompt", "", "Executar uma instrução única sem abrir o modo interativo")
+	mcpStdioFlag := flag.Bool("mcp-stdio", false, "Roda como servidor MCP stdio (JSON-RPC 2.0) expondo as ferramentas do Editor Godot")
 	flag.Parse()
+
+	// Modo MCP: stdout é reservado ao JSON-RPC; nenhum banner é impresso.
+	if *mcpStdioFlag {
+		runMCPStdioServer(*portFlag)
+		return
+	}
 
 	fmt.Println("=================================================================")
 	fmt.Printf("           CROM-GODOT-AGENT (Go ReAct Daemon v1.0)\n")
