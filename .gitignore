@@ -4,6 +4,7 @@
 
 # Build outputs
 release/
+releases/
 
 # Telemetry and benchmark logs
 benchmark_logs/
