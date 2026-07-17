@@ -720,10 +720,12 @@ func _on_agent_status(status: String) -> void:
 			_collapse_tools()
 			_set_busy_ui(false)
 			_permission_bar.visible = false
+			_prompt_input.placeholder_text = "Peça ao agente para criar, mover, corrigir...  (digite / para comandos)"
 		"waiting_user_input":
 			_status_label.text = "aguardando você"
 			_finalize_stream()
 			_set_busy_ui(false)
+			_prompt_input.placeholder_text = "Digite sua resposta para o agente..."
 		_:
 			if status.begins_with("error:"):
 				_status_label.text = "erro"
@@ -766,8 +768,14 @@ func _on_agent_event(event: Dictionary) -> void:
 	match kind:
 		"tool_call":
 			var tool_name := str(data.get("tool", data.get("name", "ferramenta")))
-			var args := JSON.stringify(data.get("args", data.get("arguments", {})))
+			var args_dict = data.get("args", data.get("arguments", {}))
+			var args := JSON.stringify(args_dict)
 			_append_entry("tool_call", "Ferramenta: %s %s" % [tool_name, args.left(400)], true)
+			if tool_name == "ask_user":
+				_prompt_input.placeholder_text = "Responda à pergunta do agente..."
+				var q := str(args_dict.get("question", args_dict.get("prompt", args_dict.get("Question", ""))))
+				if q != "":
+					_append_entry("system", "[b][color=#e5c07b]❓ Pergunta do Agente:[/color][/b] %s" % q, false)
 		"tool_result":
 			var res_txt := str(data.get("result", data.get("output", JSON.stringify(data))))
 			_append_entry("tool_res", res_txt.left(800), false)
@@ -815,6 +823,51 @@ func _collapse_tools() -> void:
 			entry["expanded"] = false
 	_render_chat_log()
 
+func _markdown_to_bbcode(s: String) -> String:
+	var res := s
+	
+	# Code blocks: ```[lang] code ``` -> [code]code[/code]
+	var regex_code_block := RegEx.new()
+	regex_code_block.compile("(?s)```[a-zA-Z0-9]*\\n(.*?)\\n```")
+	var matches_cb := regex_code_block.search_all(res)
+	for j in range(matches_cb.size() - 1, -1, -1):
+		var m := matches_cb[j]
+		var code := m.get_string(1)
+		var bb := "[code]\n%s\n[/code]" % code
+		res = res.substr(0, m.get_start()) + bb + res.substr(m.get_end())
+
+	# Inline code: `code` -> [code]code[/code]
+	var regex_code := RegEx.new()
+	regex_code.compile("`([^`\\n]+)`")
+	var matches_c := regex_code.search_all(res)
+	for j in range(matches_c.size() - 1, -1, -1):
+		var m := matches_c[j]
+		var code := m.get_string(1)
+		var bb := "[code]%s[/code]" % code
+		res = res.substr(0, m.get_start()) + bb + res.substr(m.get_end())
+
+	# Bold: **bold** -> [b]bold[/b]
+	var regex_bold := RegEx.new()
+	regex_bold.compile("\\*\\*([^\\*\\n]+)\\*\\*")
+	var matches_b := regex_bold.search_all(res)
+	for j in range(matches_b.size() - 1, -1, -1):
+		var m := matches_b[j]
+		var text := m.get_string(1)
+		var bb := "[b]%s[/b]" % text
+		res = res.substr(0, m.get_start()) + bb + res.substr(m.get_end())
+
+	# Italic: *italic* -> [i]italic[/i]
+	var regex_italic := RegEx.new()
+	regex_italic.compile("\\*([^\\*\\n]+)\\*")
+	var matches_i := regex_italic.search_all(res)
+	for j in range(matches_i.size() - 1, -1, -1):
+		var m := matches_i[j]
+		var text := m.get_string(1)
+		var bb := "[i]%s[/i]" % text
+		res = res.substr(0, m.get_start()) + bb + res.substr(m.get_end())
+
+	return res
+
 func _render_chat_log() -> void:
 	if not _chat_log:
 		return
@@ -828,10 +881,26 @@ func _render_chat_log() -> void:
 		var expanded: bool = entry.get("expanded", false)
 
 		var clean_text := text
-		if role in ["user", "assistant", "streaming"]:
-			clean_text = _format_badges(clean_text)
+		var thought_text := ""
+		if role in ["assistant", "streaming"]:
+			# Extrai pensamento <thought>...</thought>
+			var thought_start := clean_text.find("<thought>")
+			var thought_end := clean_text.find("</thought>")
+			if thought_start != -1:
+				if thought_end != -1:
+					thought_text = clean_text.substr(thought_start + 9, thought_end - (thought_start + 9)).strip_edges()
+					clean_text = clean_text.substr(0, thought_start) + clean_text.substr(thought_end + 10)
+				else:
+					thought_text = clean_text.substr(thought_start + 9).strip_edges()
+					clean_text = clean_text.substr(0, thought_start)
 
-		var is_error := role == "system" and (clean_text.to_lower().contains("erro") or clean_text.to_lower().contains("failed"))
+		if role in ["user", "assistant", "streaming"]:
+			clean_text = _markdown_to_bbcode(clean_text)
+			clean_text = _format_badges(clean_text)
+			if thought_text != "":
+				thought_text = _markdown_to_bbcode(thought_text)
+
+		var is_error := role == "system" and (clean_text.contains("Erro na ferramenta") or clean_text.begins_with("Erro:") or clean_text.to_lower().contains("failed"))
 		if is_error:
 			var err_idx := _error_lut.size()
 			_error_lut.append(clean_text)
@@ -841,9 +910,15 @@ func _render_chat_log() -> void:
 			"user":
 				_chat_log.append_text("\n[color=#56b6c2][b]Você[/b][/color]\n" + clean_text + "\n")
 			"assistant":
-				_chat_log.append_text("\n[color=#c678dd][b]Crom Agente[/b][/color]\n" + clean_text + "\n")
+				_chat_log.append_text("\n[color=#c678dd][b]Crom Agente[/b][/color]\n")
+				if thought_text != "":
+					_chat_log.append_text("[color=#7f848e]💭 [i]" + thought_text + "[/i][/color]\n\n")
+				_chat_log.append_text(clean_text + "\n")
 			"streaming":
-				_chat_log.append_text("\n[color=#c678dd][b]Crom Agente[/b][/color] [color=#5c6370]…[/color]\n" + clean_text + "\n")
+				_chat_log.append_text("\n[color=#c678dd][b]Crom Agente[/b][/color] [color=#5c6370]…[/color]\n")
+				if thought_text != "":
+					_chat_log.append_text("[color=#7f848e]💭 [i]" + thought_text + "[/i][/color]\n\n")
+				_chat_log.append_text(clean_text + "\n")
 			"system":
 				_chat_log.append_text("[color=#5c6370][i]" + clean_text + "[/i][/color]\n")
 			"tool_call":
