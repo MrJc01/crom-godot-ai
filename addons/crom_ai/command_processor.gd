@@ -129,6 +129,25 @@ func _get_world_manager() -> Node:
 		return instance
 	return self
 
+func _resolve_node(scene_root: Node, path: String) -> Node:
+	if not scene_root:
+		return null
+	if path == "." or path == "":
+		return scene_root
+	if path.begins_with("/root/"):
+		var tree = Engine.get_main_loop() as SceneTree
+		if tree and tree.root.has_node(path):
+			return tree.root.get_node(path)
+		var root_path = str(scene_root.get_path())
+		if path.begins_with(root_path):
+			var rel = path.substr(root_path.length())
+			if rel.begins_with("/"):
+				rel = rel.substr(1)
+			if rel == "":
+				return scene_root
+			return scene_root.get_node_or_null(rel)
+	return scene_root.get_node_or_null(path)
+
 # --- Implementações do Editor ---
 
 func _get_scene_tree() -> Dictionary:
@@ -191,7 +210,7 @@ func _add_node(params: Dictionary) -> Dictionary:
 		
 	var parent_node: Node = scene_root
 	if parent_path != "." and parent_path != "":
-		parent_node = scene_root.get_node_or_null(parent_path)
+		parent_node = _resolve_node(scene_root, parent_path)
 		if not parent_node:
 			return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
 			
@@ -219,7 +238,7 @@ func _remove_node(params: Dictionary) -> Dictionary:
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
 		
-	var target = scene_root.get_node_or_null(node_path)
+	var target = _resolve_node(scene_root, node_path)
 	if not target:
 		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
 		
@@ -242,7 +261,7 @@ func _set_node_property(params: Dictionary) -> Dictionary:
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
 		
-	var target = scene_root.get_node_or_null(node_path)
+	var target = _resolve_node(scene_root, node_path)
 	if not target:
 		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
 		
@@ -256,6 +275,15 @@ func _set_node_property(params: Dictionary) -> Dictionary:
 
 # Converte Arrays/Strings JSON em tipos nativos (Vector2/3, Color) baseado no valor atual da propriedade
 func _coerce_value(target: Object, property_name: String, value: Variant) -> Variant:
+	if value is Dictionary and value.has("__resource_type"):
+		var res_type = str(value["__resource_type"])
+		if ClassDB.class_exists(res_type) and ClassDB.is_parent_class(res_type, "Resource"):
+			var res = ClassDB.instantiate(res_type)
+			for k in value:
+				if k != "__resource_type" and k in res:
+					res.set(k, _coerce_value(res, k, value[k]))
+			return res
+
 	var current = target.get(property_name)
 	if value is Array:
 		if current is Vector2 and value.size() >= 2:
@@ -289,7 +317,7 @@ func _move_node(params: Dictionary) -> Dictionary:
 	var scene_root := _get_edited_scene_root()
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
-	var target = scene_root.get_node_or_null(node_path) if node_path != "." else scene_root
+	var target = _resolve_node(scene_root, node_path)
 	if not target:
 		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
 
@@ -311,7 +339,7 @@ func _rename_node(params: Dictionary) -> Dictionary:
 	var scene_root := _get_edited_scene_root()
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
-	var target = scene_root.get_node_or_null(node_path)
+	var target = _resolve_node(scene_root, node_path)
 	if not target:
 		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
 
@@ -329,8 +357,8 @@ func _reparent_node(params: Dictionary) -> Dictionary:
 	var scene_root := _get_edited_scene_root()
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
-	var target = scene_root.get_node_or_null(node_path)
-	var new_parent = scene_root if new_parent_path == "." else scene_root.get_node_or_null(new_parent_path)
+	var target = _resolve_node(scene_root, node_path)
+	var new_parent = _resolve_node(scene_root, new_parent_path)
 	if not target or not new_parent:
 		return { "status": "error", "message": "Nó ou novo pai não encontrado ('%s' -> '%s')." % [node_path, new_parent_path] }
 	if target == scene_root:
@@ -389,7 +417,7 @@ func _instantiate_scene(params: Dictionary) -> Dictionary:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor para instanciar." }
 	var parent_node: Node = scene_root
 	if parent_path != "." and parent_path != "":
-		parent_node = scene_root.get_node_or_null(parent_path)
+		parent_node = _resolve_node(scene_root, parent_path)
 		if not parent_node:
 			return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
 
@@ -487,7 +515,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 		scene_root = editor_plugin.get_editor_interface().get_edited_scene_root()
 		
 	if scene_root:
-		var target = scene_root.get_node_or_null(node_path)
+		var target = _resolve_node(scene_root, node_path)
 		if target:
 			target.set_script(loaded_script)
 			return { "status": "success", "message": "Script %s criado e anexado ao nó '%s'." % [script_path, target.name] }
