@@ -108,6 +108,12 @@ func process_command(command_json: String) -> Dictionary:
 			return _simulate_key(params)
 		"simulate_action":
 			return _simulate_action(params)
+		"get_runtime_scene_tree":
+			return _query_runtime("get_tree", {})
+		"get_runtime_property":
+			return _query_runtime("get_property", params)
+		"record_property_over_time":
+			return _record_property_over_time(params)
 
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
@@ -1044,3 +1050,61 @@ func _simulate_action(params: Dictionary) -> Dictionary:
 	else:
 		Input.action_release(action)
 	return { "status": "success", "message": "Ação '%s' (%s) simulada." % [action, "press" if pressed else "release"] }
+
+# ==============================================================================
+# crom-godot-mcp — Fase 2: inspeção do JOGO EM EXECUÇÃO (via autoload CromRuntime)
+# O editor não enxerga o processo do jogo; consultamos o servidor WS 8091 que o
+# autoload crom_runtime.gd abre dentro do jogo rodado por play_scene.
+# ==============================================================================
+
+const _RUNTIME_PORT := 8091
+
+# Consulta síncrona (com polling e timeout) ao jogo em execução.
+func _query_runtime(action: String, params: Dictionary, timeout_ms: int = 2500) -> Dictionary:
+	var ws := WebSocketPeer.new()
+	if ws.connect_to_url("ws://127.0.0.1:%d" % _RUNTIME_PORT) != OK:
+		return { "status": "error", "message": "Jogo não está rodando. Chame play_scene e aguarde ~1s antes de consultar o runtime." }
+	var t0 := Time.get_ticks_msec()
+	while ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		ws.poll()
+		var st := ws.get_ready_state()
+		if st == WebSocketPeer.STATE_CLOSED or (Time.get_ticks_msec() - t0) > timeout_ms:
+			return { "status": "error", "message": "Jogo não respondeu na porta 8091. Rode play_scene e aguarde o jogo iniciar." }
+		OS.delay_msec(20)
+	ws.send_text(JSON.stringify({ "action": action, "params": params }))
+	while (Time.get_ticks_msec() - t0) < timeout_ms:
+		ws.poll()
+		if ws.get_available_packet_count() > 0:
+			var resp := ws.get_packet().get_string_from_utf8()
+			ws.close()
+			var parsed = JSON.parse_string(resp)
+			return parsed if parsed is Dictionary else { "status": "error", "message": "Resposta inválida do jogo." }
+		OS.delay_msec(20)
+	ws.close()
+	return { "status": "error", "message": "Timeout ao consultar o jogo em execução." }
+
+# Amostra uma propriedade de um nó ao longo de N leituras — prova de movimento.
+func _record_property_over_time(params: Dictionary) -> Dictionary:
+	var node_path := str(params.get("node_path", "."))
+	var prop := str(params.get("property", "position"))
+	var samples := clampi(int(params.get("samples", 5)), 2, 20)
+	var interval := clampi(int(params.get("interval_ms", 250)), 50, 1000)
+	var values: Array[String] = []
+	for i in range(samples):
+		var r := _query_runtime("get_property", { "node_path": node_path, "property": prop })
+		if r.get("status") != "success":
+			if values.is_empty():
+				return r
+			break
+		values.append(str(r.get("value")))
+		if i < samples - 1:
+			OS.delay_msec(interval)
+	var changed := values.size() > 1 and values[0] != values[values.size() - 1]
+	return {
+		"status": "success",
+		"node": node_path,
+		"property": prop,
+		"samples": values,
+		"changed": changed,
+		"message": ("'%s.%s' MUDOU ao longo do tempo — movimento/animação detectado." % [node_path, prop]) if changed else ("'%s.%s' NÃO mudou — nada se move (possível bug: timer parado, sinal não conectado, etc.)." % [node_path, prop])
+	}

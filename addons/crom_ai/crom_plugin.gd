@@ -44,7 +44,42 @@ func _enter_tree() -> void:
 	# Registra o menu de contexto "Enviar para o Crom Agente" (arquivos e nós)
 	_register_context_menus()
 
+	# Autoload que roda DENTRO do jogo (play_scene) e expõe o estado em runtime
+	# na porta 8091 — permite verificar gameplay ("algo se moveu?").
+	add_autoload_singleton("CromRuntime", "res://addons/crom_ai/crom_runtime.gd")
+
+	# Implanta as skills do addon em res://.crom/skills/ para o crom-agente carregá-las.
+	_deploy_skills()
+
 	print("=========================================================")
+
+# Copia os arquivos .crom de addons/crom_ai/skills/ para res://.crom/skills/
+# (só quando ausentes ou mais novos), onde o crom-agente os carrega no prompt.
+func _deploy_skills() -> void:
+	var src_dir := "res://addons/crom_ai/skills"
+	var dst_dir := "res://.crom/skills"
+	if not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_dir)):
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dst_dir))
+	var d := DirAccess.open(src_dir)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var fname := d.get_next()
+	var copied := 0
+	while fname != "":
+		if not d.current_is_dir() and fname.ends_with(".crom"):
+			var src := src_dir + "/" + fname
+			var dst := dst_dir + "/" + fname
+			# Sobrescreve para manter a skill sincronizada com a versão do addon.
+			if FileAccess.file_exists(dst):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(dst))
+			if DirAccess.copy_absolute(ProjectSettings.globalize_path(src), ProjectSettings.globalize_path(dst)) == OK:
+				copied += 1
+		fname = d.get_next()
+	d.list_dir_end()
+	if copied > 0:
+		print("[CromAI Bridge] %d skill(s) implantada(s) em res://.crom/skills/ para o Crom Agente." % copied)
 
 func _register_context_menus() -> void:
 	if not ClassDB.class_exists("EditorContextMenuPlugin"):
@@ -70,6 +105,7 @@ func _process(_delta: float) -> void:
 		websocket_server.process_network()
 
 func _exit_tree() -> void:
+	remove_autoload_singleton("CromRuntime")
 	if _ctx_menu_files:
 		remove_context_menu_plugin(_ctx_menu_files)
 		_ctx_menu_files = null
