@@ -114,6 +114,8 @@ func process_command(command_json: String) -> Dictionary:
 			return _query_runtime("get_property", params)
 		"record_property_over_time":
 			return _record_property_over_time(params)
+		"verify_playable":
+			return _verify_playable(params)
 
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
@@ -1084,6 +1086,64 @@ func _query_runtime(action: String, params: Dictionary, timeout_ms: int = 2500) 
 	return { "status": "error", "message": "Timeout ao consultar o jogo em execução." }
 
 # Amostra uma propriedade de um nó ao longo de N leituras — prova de movimento.
+# Composite do FEEDBACK LOOP: roda a cena, espera o boot, checa erros de console
+# e detecta se algo se move em runtime — e devolve um veredito único de "jogável".
+# Fecha o loop que o agente precisa: montou -> rodou -> viu -> corrige/finaliza.
+func _verify_playable(params: Dictionary) -> Dictionary:
+	if not (editor_plugin and editor_plugin.get_editor_interface()):
+		return { "status": "error", "message": "EditorInterface indisponível para rodar cena." }
+	var scene_path: String = str(params.get("scene_path", ""))
+	var node_path: String = str(params.get("node_path", "."))
+	var prop: String = str(params.get("property", "position"))
+	var boot_wait_ms: int = clampi(int(params.get("boot_wait_ms", 2000)), 500, 8000)
+	var check_movement: bool = bool(params.get("check_movement", true))
+
+	# 1. baseline do console + roda a cena
+	_play_scene({ "scene_path": scene_path })
+	# 2. espera o jogo bootar (e o autoload CromRuntime abrir a porta 8091)
+	OS.delay_msec(boot_wait_ms)
+
+	# 3. detecção de movimento (opcional)
+	var movement = null  # null = não foi possível checar (runtime offline)
+	var movement_detail := ""
+	if check_movement:
+		var rec := _record_property_over_time({ "node_path": node_path, "property": prop, "samples": 5, "interval_ms": 250 })
+		if rec.get("status") == "success":
+			movement = bool(rec.get("changed"))
+			movement_detail = str(rec.get("message", ""))
+		else:
+			movement_detail = "runtime não respondeu (CromRuntime ausente ou cena não bootou): " + str(rec.get("message", ""))
+
+	# 4. erros de console DESTA execução
+	var errs := _get_console_errors({})
+	var error_list: Array = errs.get("errors", [])
+
+	# 5. para a execução
+	_stop_scene()
+
+	# 6. veredito
+	var has_errors := error_list.size() > 0
+	var playable := not has_errors
+	var verdict := ""
+	if has_errors:
+		verdict = "❌ NÃO jogável: %d erro(s) de console. Corrija-os e rode verify_playable de novo." % error_list.size()
+	elif movement == false:
+		verdict = "⚠️ Roda SEM erros, mas '%s.%s' não muda — nada se move. Verifique input/timer/sinais e process()." % [node_path, prop]
+	elif movement == true:
+		verdict = "✅ Jogável: 0 erros e movimento detectado em '%s.%s'." % [node_path, prop]
+	else:
+		verdict = "✅ Roda sem erros de console (movimento não verificado — runtime offline)."
+	return {
+		"status": "success",
+		"playable": playable,
+		"has_errors": has_errors,
+		"error_count": error_list.size(),
+		"errors": error_list,
+		"movement_detected": movement,
+		"movement_detail": movement_detail,
+		"message": verdict
+	}
+
 func _record_property_over_time(params: Dictionary) -> Dictionary:
 	var node_path := str(params.get("node_path", "."))
 	var prop := str(params.get("property", "position"))
