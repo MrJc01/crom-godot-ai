@@ -1165,3 +1165,8 @@ func _drop_data(_pos: Vector2, data: Variant) -> void:
 		for p in data["paths"]:
 			add_context_chip("node", str(p).get_file(), str(p))
 		_append_entry("system", "Nó(s) anexado(s) ao contexto.")
+
+func _exit_tree() -> void:
+	if agent and agent.has_method("stop_daemon"):
+		agent.stop_daemon()
+

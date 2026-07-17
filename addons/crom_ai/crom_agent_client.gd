@@ -391,3 +391,11 @@ func _mcp_entry_matches(a: Dictionary, b: Dictionary) -> bool:
 	if JSON.stringify(a.get("env", [])) != JSON.stringify(b.get("env", [])):
 		return false
 	return true
+
+func stop_daemon() -> void:
+	var bin := _get_agent_binary_path()
+	if bin != "":
+		var output := []
+		OS.execute(bin, ["daemon", "stop"], output)
+		print("[CromAgentClient] Comando daemon stop executado. ", output)
+
