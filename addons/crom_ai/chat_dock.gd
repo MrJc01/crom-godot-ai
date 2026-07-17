@@ -27,8 +27,8 @@ const PROVIDERS := [
 
 # Slash commands. kind: "agent" (vira task), "scene" (pede uma cena), "local" (ação da UI).
 const SLASH_COMMANDS := [
-	{ "cmd": "/jogar", "desc": "Executar a cena atual", "kind": "agent",
-	  "task": "Rode a cena atualmente aberta no editor usando play_scene e confirme se abriu corretamente." },
+	{ "cmd": "/jogar", "desc": "Agente joga e auto-corrige o jogo", "kind": "agent",
+	  "task": "Rode a cena de jogo ativa no editor usando play_scene. Simule interações de jogabilidade enviando inputs de teclado (como direcionais, WASD, barra de espaço) usando a ferramenta simulate_editor_input para testar o jogo por alguns segundos. Durante o teste, capture screenshots com capture_screenshot para verificar visualmente se o jogo responde aos comandos e renderiza os elementos na tela. Se detectar falhas, travamentos ou erros no console do Godot, use suas ferramentas de modificação de arquivo e script para corrigir os bugs de forma autônoma. Caso encontre problemas que não consiga corrigir diretamente, descreva o diagnóstico detalhado e as falhas encontradas." },
 	{ "cmd": "/jogar-cena", "desc": "Executar uma cena específica…", "kind": "scene" },
 	{ "cmd": "/parar", "desc": "Parar a execução em teste", "kind": "agent",
 	  "task": "Pare a execução da cena em teste usando stop_scene." },
