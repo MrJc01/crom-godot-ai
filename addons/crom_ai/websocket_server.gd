@@ -22,6 +22,7 @@ func start_server() -> bool:
 		print("[CromAI WebSocket] Falha ao escutar na porta %d. Erro: %d" % [port, err])
 		return false
 	print("[CromAI WebSocket] Servidor ativo e escutando na porta %d (ws://127.0.0.1:%d)" % [port, port])
+	OS.low_processor_usage_mode = false
 	return true
 
 func stop_server() -> void:
@@ -32,6 +33,7 @@ func stop_server() -> void:
 		tcp_server.stop()
 		tcp_server = null
 	print("[CromAI WebSocket] Servidor encerrado.")
+	OS.low_processor_usage_mode = true
 
 func process_network() -> void:
 	if not tcp_server:
