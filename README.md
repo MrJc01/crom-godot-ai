@@ -95,23 +95,47 @@ A cena principal (`res://addons/crom_ai/ui/hub_controller.tscn`) é um hub minim
 
 15 minijogos funcionais para validar geração/refatoração pela IA (Pong, Snake, Flappy, Breakout, Space Invaders, Tetris, Asteroids, Endless Runner, Top-Down Dungeon, Platformer, Tower Defense, Clicker Idle, Memory Match, Raycaster, 3D Rolling Ball).
 
----
+## 🔧 Daemon, Binários e Testes no Terminal
 
-## 🔧 Daemon e binários
+O plugin embute os binários compilados em `addons/crom_ai/bin/`:
+- `crom-agente-<os>-<arch>` — o daemon/agente.
+- `godot-mcp-<os>-<arch>` — o bridge MCP (compilado a partir de `crom-godot-agent/go/`).
 
-O plugin embute os binários em `addons/crom_ai/bin/`:
-- `crom-agente-<os>-<arch>` — o daemon/agent.
-- `godot-mcp-<os>-<arch>` — o bridge MCP (compilado de `crom-godot-agent/go/`).
-
-Recompilar o bridge:
+### 1. Recompilar o Bridge (Go)
+Caso altere o código em Go, você pode recompilar o bridge manualmente:
 ```bash
 cd crom-godot-agent/go
 GOOS=linux GOARCH=amd64 go build -o ../../addons/crom_ai/bin/godot-mcp-linux-amd64 .
 ```
 
-Uso manual do bridge (debug): `./godot-mcp-linux-amd64 --mcp-stdio --port 8080` (fala JSON-RPC 2.0 no stdin/stdout).
+### 2. Abrir o Editor do Godot via Terminal
+Inicie o editor apontando para a pasta do projeto:
+```bash
+godot --editor --path /home/j/Documentos/GitHub/crom-godot-ai
+```
+*(Certifique-se de que o plugin **CromAI MCP & Play Bridge** esteja ativado em **Projeto -> Configurações do Projeto -> Plugins**).*
 
----
+### 3. Testar o Agente de Forma Interativa no Terminal
+Com o editor do Godot aberto e o plugin ativo, você pode rodar e conversar com o agente diretamente do terminal usando o CLI em Go:
+```bash
+cd crom-godot-agent/go
+go run . --provider <seu_provedor> --model <seu_modelo>
+```
+Exemplo para Ollama (Llama 3):
+```bash
+go run . --provider ollama --model llama3
+```
+Exemplo para Gemini (lembre-se de configurar a API key):
+```bash
+export GEMINI_API_KEY="sua_chave"
+go run . --provider gemini --model google/gemini-2.5-flash
+```
+
+### 4. Uso Manual do Bridge (Debug/Stdio)
+Para validar o bridge separadamente via JSON-RPC 2.0 (comunicação direta por stdin/stdout):
+```bash
+./addons/crom_ai/bin/godot-mcp-linux-amd64 --mcp-stdio --port 8080
+```
 
 ## 🔐 Segurança
 
