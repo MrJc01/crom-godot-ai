@@ -63,6 +63,9 @@ func process_network() -> void:
 		var conn = tcp_server.take_connection()
 		if conn:
 			var ws = WebSocketPeer.new()
+			# Aumenta buffer para 10MB para suportar envio de screenshots base64 gigantes
+			ws.inbound_buffer_size = 10 * 1024 * 1024
+			ws.outbound_buffer_size = 10 * 1024 * 1024
 			ws.accept_stream(conn)
 			peers.append(ws)
 			print("[CromAI WebSocket] Novo cliente de agente conectado!")
