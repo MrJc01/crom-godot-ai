@@ -214,7 +214,7 @@ func _get_scene_tree() -> Dictionary:
 	if not scene_root or (tree and scene_root == tree.root):
 		return { "status": "error", "message": "Nenhuma cena de jogo ativa para obter a árvore de nós no momento." }
 		
-	var tree_data = _serialize_node_tree(scene_root, scene_root)
+	var tree_data: Dictionary = _serialize_node_tree(scene_root, scene_root)
 	return { "status": "success", "scene_root_name": scene_root.name, "tree": tree_data }
 
 func _serialize_node_tree(node: Node, scene_root: Node) -> Dictionary:
@@ -288,7 +288,7 @@ func _add_node(params: Dictionary) -> Dictionary:
 # a cena inteira num passo. Processa em ordem: pais antes dos filhos. Cada item é
 # {node_type, node_name, parent_path, properties} como em add_node.
 func _add_nodes_batch(params: Dictionary) -> Dictionary:
-	var specs = params.get("nodes", [])
+	var specs: Variant = params.get("nodes", [])
 	if not (specs is Array) or specs.is_empty():
 		return { "status": "error", "message": "Envie 'nodes' como um array de {node_type, node_name, parent_path, properties}." }
 	var results: Array = []
@@ -392,7 +392,7 @@ func _coerce_value(target: Object, property_name: String, value: Variant) -> Var
 	# Caminho res:// para um recurso já no disco (textura de Sprite2D, .tres de
 	# shape, PackedScene...) -> carrega e atribui o Resource, não a String.
 	if value is String and value.begins_with("res://") and ResourceLoader.exists(value):
-		var loaded = load(value)
+		var loaded: Resource = load(value)
 		if loaded != null:
 			return loaded
 
@@ -690,7 +690,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	# CACHE_MODE_REPLACE: recarrega do disco e substitui o recurso em cache. Sem
 	# isso, uma 2ª chamada (correção de bug) receberia o script ANTIGO em cache,
 	# quebrando o loop "vê erro -> corrige -> reverifica".
-	var loaded_script = ResourceLoader.load(script_path, "Script", ResourceLoader.CACHE_MODE_REPLACE)
+	var loaded_script: Resource = ResourceLoader.load(script_path, "Script", ResourceLoader.CACHE_MODE_REPLACE)
 	if not loaded_script:
 		return { "status": "success", "message": "Script salvo com sucesso em '%s' (Aviso: falha temporária ao carregar o script na engine, provavelmente devido a preloads de recursos ou cenas ainda não criados. Prossiga criando as dependências faltantes)." % script_path }
 		
@@ -1226,7 +1226,7 @@ func _query_runtime(action: String, params: Dictionary, timeout_ms: int = 2500) 
 		if ws.get_available_packet_count() > 0:
 			var resp := ws.get_packet().get_string_from_utf8()
 			ws.close()
-			var parsed = JSON.parse_string(resp)
+			var parsed: Variant = JSON.parse_string(resp)
 			return parsed if parsed is Dictionary else { "status": "error", "message": "Resposta inválida do jogo." }
 		OS.delay_msec(20)
 	ws.close()
@@ -1256,7 +1256,7 @@ func _verify_playable(params: Dictionary) -> Dictionary:
 
 	# FASE B — movimento (só se não houver erros; roda a cena no editor e consulta
 	# o runtime na porta 8091). Erro já reprova sem precisar checar movimento.
-	var movement = null  # null = não verificado
+	var movement: Variant = null  # null = não verificado
 	var movement_detail := ""
 	if not has_errors and check_movement:
 		_play_scene({ "scene_path": scene_path })

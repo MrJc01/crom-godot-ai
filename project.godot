@@ -23,9 +23,6 @@ CromWorldManager="*res://addons/crom_ai/world_state_manager.gd"
 
 [debug]
 
-gdscript/warnings/directory_rules={
-"res://addons": 1
-}
 
 [display]
 

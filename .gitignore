@@ -28,3 +28,5 @@ addons/crom_ai/chat_history/
 crom-godot-agent/go/crom-godot-agent
 external/godot
 .claude
+# Log de debug do WebSocket server (runtime)
+crom_debug.log
