@@ -1,0 +1,8 @@
+Este arquivo marca o REPOSITÓRIO-FONTE do addon CromAI.
+
+Enquanto ele existir na raiz do projeto, o plugin NÃO remove os binários de
+outras plataformas de addons/crom_ai/bin/ (mantém todos os alvos para
+distribuição). Ele fica na raiz de propósito: quando um usuário instala o
+plugin copiando apenas a pasta addons/crom_ai/, este marcador não vai junto,
+então nos projetos de usuário a poda roda e sobra só o binário da plataforma
+atual (~150MB a menos).

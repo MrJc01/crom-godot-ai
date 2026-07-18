@@ -51,7 +51,52 @@ func _enter_tree() -> void:
 	# Implanta as skills do addon em res://.crom/skills/ para o crom-agente carregá-las.
 	_deploy_skills()
 
+	# Remove binários de OUTRAS plataformas do bin/ (economiza ~150MB por projeto).
+	_prune_foreign_binaries()
+
 	print("=========================================================")
+
+# Retorna o sufixo do binário desta plataforma (ex: "linux-amd64", "windows-amd64.exe").
+func _current_bin_suffix() -> String:
+	var arch := "arm64" if Engine.get_architecture_name().contains("arm") else "amd64"
+	match OS.get_name():
+		"Windows":
+			return "windows-%s.exe" % arch
+		"macOS":
+			return "darwin-%s" % arch
+		_:
+			return "linux-%s" % arch
+
+# O addon é distribuído com os binários (crom-agente + godot-mcp) de TODOS os
+# alvos (~200MB). Só o da plataforma atual é usado; os outros são removidos do
+# projeto para não pesar ~150MB à toa. Mantém o binário atual e o CLI.
+func _prune_foreign_binaries() -> void:
+	# Guard: no repositório-FONTE do addon existe o marcador res://.crom_dev_source
+	# (na raiz, fora de addons/ — então NÃO viaja quando o usuário copia o addon).
+	# Ali mantemos todos os alvos; a poda só roda em projetos de usuário.
+	if FileAccess.file_exists("res://.crom_dev_source"):
+		return
+	var bin_dir := "res://addons/crom_ai/bin"
+	var suffix := _current_bin_suffix()
+	var d := DirAccess.open(bin_dir)
+	if d == null:
+		return
+	# Só poda se o binário desta plataforma existir (evita apagar tudo por engano).
+	if not (FileAccess.file_exists(bin_dir + "/crom-agente-" + suffix) or FileAccess.file_exists(bin_dir + "/godot-mcp-" + suffix)):
+		return
+	d.list_dir_begin()
+	var fname := d.get_next()
+	var removed := 0
+	while fname != "":
+		if not d.current_is_dir() and (fname.begins_with("crom-agente-") or fname.begins_with("godot-mcp-")):
+			# Mantém o binário desta plataforma e o CLI; remove os demais alvos.
+			if not fname.ends_with(suffix) and fname != "crom-agente-cli":
+				if DirAccess.remove_absolute(ProjectSettings.globalize_path(bin_dir + "/" + fname)) == OK:
+					removed += 1
+		fname = d.get_next()
+	d.list_dir_end()
+	if removed > 0:
+		print("[CromAI Bridge] %d binário(s) de outras plataformas removido(s) (mantido: %s)." % [removed, suffix])
 
 # Copia os arquivos .crom de addons/crom_ai/skills/ para res://.crom/skills/
 # (só quando ausentes ou mais novos), onde o crom-agente os carrega no prompt.
