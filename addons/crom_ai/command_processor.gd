@@ -613,8 +613,11 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	
 	# Força recarregamento do recurso no editor
 	_refresh_editor_filesystem()
-		
-	var loaded_script = load(script_path)
+
+	# CACHE_MODE_REPLACE: recarrega do disco e substitui o recurso em cache. Sem
+	# isso, uma 2ª chamada (correção de bug) receberia o script ANTIGO em cache,
+	# quebrando o loop "vê erro -> corrige -> reverifica".
+	var loaded_script = ResourceLoader.load(script_path, "Script", ResourceLoader.CACHE_MODE_REPLACE)
 	if not loaded_script:
 		return { "status": "success", "message": "Script salvo com sucesso em '%s' (Aviso: falha temporária ao carregar o script na engine, provavelmente devido a preloads de recursos ou cenas ainda não criados. Prossiga criando as dependências faltantes)." % script_path }
 		
@@ -1164,46 +1167,46 @@ func _verify_playable(params: Dictionary) -> Dictionary:
 	if not (editor_plugin and editor_plugin.get_editor_interface()):
 		return { "status": "error", "message": "EditorInterface indisponível para rodar cena." }
 	var scene_path: String = str(params.get("scene_path", ""))
+	if scene_path == "":
+		scene_path = str(ProjectSettings.get_setting("application/run/main_scene", ""))
 	var node_path: String = str(params.get("node_path", "."))
 	var prop: String = str(params.get("property", "position"))
 	var boot_wait_ms: int = clampi(int(params.get("boot_wait_ms", 2000)), 500, 8000)
 	var check_movement: bool = bool(params.get("check_movement", true))
 
-	# 1. baseline do console + roda a cena
-	_play_scene({ "scene_path": scene_path })
-	# 2. espera o jogo bootar (e o autoload CromRuntime abrir a porta 8091)
-	OS.delay_msec(boot_wait_ms)
+	# FASE A — validação AUTORITATIVA de erros via processo HEADLESS com stderr
+	# capturado. O log do editor NÃO captura os erros de runtime do jogo (processo
+	# separado), então rodar a cena headless é a única forma confiável de vê-los.
+	var hv := _headless_validate(scene_path, 90)
+	var error_list: Array = hv.get("errors", [])
+	var has_errors: bool = error_list.size() > 0
 
-	# 3. detecção de movimento (opcional)
-	var movement = null  # null = não foi possível checar (runtime offline)
+	# FASE B — movimento (só se não houver erros; roda a cena no editor e consulta
+	# o runtime na porta 8091). Erro já reprova sem precisar checar movimento.
+	var movement = null  # null = não verificado
 	var movement_detail := ""
-	if check_movement:
+	if not has_errors and check_movement:
+		_play_scene({ "scene_path": scene_path })
+		OS.delay_msec(boot_wait_ms)
 		var rec := _record_property_over_time({ "node_path": node_path, "property": prop, "samples": 5, "interval_ms": 250 })
 		if rec.get("status") == "success":
 			movement = bool(rec.get("changed"))
 			movement_detail = str(rec.get("message", ""))
 		else:
 			movement_detail = "runtime não respondeu (CromRuntime ausente ou cena não bootou): " + str(rec.get("message", ""))
+		_stop_scene()
 
-	# 4. erros de console DESTA execução
-	var errs := _get_console_errors({})
-	var error_list: Array = errs.get("errors", [])
-
-	# 5. para a execução
-	_stop_scene()
-
-	# 6. veredito
-	var has_errors := error_list.size() > 0
+	# veredito
 	var playable := not has_errors
 	var verdict := ""
 	if has_errors:
-		verdict = "❌ NÃO jogável: %d erro(s) de console. Corrija-os e rode verify_playable de novo." % error_list.size()
+		verdict = "❌ NÃO jogável: %d erro(s) ao rodar (headless). Corrija-os e rode verify_playable de novo." % error_list.size()
 	elif movement == false:
 		verdict = "⚠️ Roda SEM erros, mas '%s.%s' não muda — nada se move. Verifique input/timer/sinais e process()." % [node_path, prop]
 	elif movement == true:
 		verdict = "✅ Jogável: 0 erros e movimento detectado em '%s.%s'." % [node_path, prop]
 	else:
-		verdict = "✅ Roda sem erros de console (movimento não verificado — runtime offline)."
+		verdict = "✅ Roda sem erros (headless). Movimento não verificado (runtime offline) — confira manualmente se algo deveria se mover."
 	return {
 		"status": "success",
 		"playable": playable,
@@ -1214,6 +1217,27 @@ func _verify_playable(params: Dictionary) -> Dictionary:
 		"movement_detail": movement_detail,
 		"message": verdict
 	}
+
+# Roda a cena num processo HEADLESS separado por N frames e captura stdout+stderr,
+# extraindo os erros (SCRIPT ERROR / Parse Error / etc.). É a fonte autoritativa
+# de erros de execução — o log do editor não vê o processo do jogo.
+func _headless_validate(scene_path: String, frames: int) -> Dictionary:
+	if scene_path == "" or not scene_path.ends_with(".tscn"):
+		return { "status": "error", "errors": [], "message": "scene_path inválido para validação headless." }
+	var bin := OS.get_executable_path()
+	var proj := ProjectSettings.globalize_path("res://")
+	var output: Array = []
+	# read_stderr=true funde o stderr (onde vão os SCRIPT ERROR) na saída capturada.
+	var code := OS.execute(bin, ["--headless", "--path", proj, scene_path, "--quit-after", str(max(30, frames))], output, true)
+	var raw := ""
+	if output.size() > 0:
+		raw = str(output[0])
+	var errors: Array[String] = []
+	for line in raw.split("\n"):
+		var l := String(line).strip_edges()
+		if l.contains("SCRIPT ERROR") or l.contains("Parse Error") or l.begins_with("ERROR:") or l.contains("Nonexistent") or l.contains("Invalid call") or l.contains("Failed to load") or l.contains("Can't create"):
+			errors.append(l)
+	return { "status": "success", "errors": errors, "return_code": code }
 
 func _record_property_over_time(params: Dictionary) -> Dictionary:
 	var node_path := str(params.get("node_path", "."))
