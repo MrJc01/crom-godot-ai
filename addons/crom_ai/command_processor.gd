@@ -90,6 +90,8 @@ func process_command(command_json: String) -> Dictionary:
 			return _list_node_methods(params)
 		"list_node_signals":
 			return _list_node_signals(params)
+		"class_reference":
+			return _class_reference(params)
 		"get_node_config_warnings":
 			return _get_node_config_warnings(params)
 		"duplicate_node":
@@ -932,6 +934,75 @@ func _list_node_signals(params: Dictionary) -> Dictionary:
 	for s in target.get_signal_list():
 		sigs.append(str(s.get("name", "")))
 	return { "status": "success", "node": str(target.name), "type": target.get_class(), "signals": sigs }
+
+# Documentação viva: consulta a API AUTORITATIVA da versão do Godot em uso via
+# ClassDB. Dá ao agente a assinatura correta (Godot 4) de qualquer classe ANTES
+# de escrever código — evita drift Godot 3 (move_and_slide(v) x move_and_slide()).
+# Se a classe não existir exatamente, devolve nomes de classes parecidos (busca).
+func _class_reference(params: Dictionary) -> Dictionary:
+	var cls := str(params.get("class_name", params.get("query", ""))).strip_edges()
+	if cls == "":
+		return { "status": "error", "message": "Informe 'class_name' (ex.: CharacterBody2D)." }
+	if not ClassDB.class_exists(cls):
+		# Busca fuzzy: classes cujo nome contém o termo (case-insensitive).
+		var q := cls.to_lower()
+		var matches: Array[String] = []
+		for c in ClassDB.get_class_list():
+			if str(c).to_lower().contains(q):
+				matches.append(str(c))
+				if matches.size() >= 30:
+					break
+		matches.sort()
+		if matches.is_empty():
+			return { "status": "error", "message": "Classe '%s' não existe e nada parecido foi encontrado." % cls }
+		return { "status": "success", "query": cls, "did_you_mean": matches, "message": "Classe exata não encontrada. Classes parecidas: %s" % ", ".join(matches) }
+
+	var methods: Array[String] = []
+	for m in ClassDB.class_get_method_list(cls, false):
+		var mn := str(m.get("name", ""))
+		if mn.begins_with("_") and not (mn == "_ready" or mn == "_process" or mn == "_physics_process" or mn == "_input" or mn == "_draw"):
+			continue
+		var arg_parts: Array[String] = []
+		for a in m.get("args", []):
+			arg_parts.append("%s: %s" % [str(a.get("name", "arg")), type_string(int(a.get("type", 0)))])
+		var ret := type_string(int(m.get("return", {}).get("type", 0)))
+		methods.append("%s(%s) -> %s" % [mn, ", ".join(arg_parts), ret])
+		if methods.size() >= 120:
+			break
+
+	var props: Array[String] = []
+	for p in ClassDB.class_get_property_list(cls, false):
+		var pn := str(p.get("name", ""))
+		if pn != "" and not pn.begins_with("_"):
+			props.append(pn)
+		if props.size() >= 80:
+			break
+
+	var signals: Array[String] = []
+	for s in ClassDB.class_get_signal_list(cls, false):
+		var sn := str(s.get("name", ""))
+		var sargs: Array[String] = []
+		for a in s.get("args", []):
+			sargs.append(str(a.get("name", "arg")))
+		signals.append("%s(%s)" % [sn, ", ".join(sargs)])
+
+	var constants: Array[String] = []
+	for c in ClassDB.class_get_integer_constant_list(cls, false):
+		constants.append(str(c))
+		if constants.size() >= 60:
+			break
+
+	return {
+		"status": "success",
+		"class": cls,
+		"inherits": ClassDB.get_parent_class(cls),
+		"instantiable": ClassDB.can_instantiate(cls),
+		"methods": methods,
+		"properties": props,
+		"signals": signals,
+		"constants": constants,
+		"message": "API Godot %s de %s (via ClassDB — autoritativa para esta versão)." % [Engine.get_version_info().get("string", "4.x"), cls]
+	}
 
 func _get_node_config_warnings(params: Dictionary) -> Dictionary:
 	var target := _resolve_scene_node(params)
