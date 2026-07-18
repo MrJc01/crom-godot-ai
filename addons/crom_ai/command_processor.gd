@@ -30,6 +30,8 @@ func process_command(command_json: String) -> Dictionary:
 			return _get_scene_tree()
 		"add_node":
 			return _add_node(params)
+		"add_nodes_batch":
+			return _add_nodes_batch(params)
 		"remove_node":
 			return _remove_node(params)
 		"set_node_property":
@@ -52,6 +54,8 @@ func process_command(command_json: String) -> Dictionary:
 			return _save_scene()
 		"open_scene":
 			return _open_scene(params)
+		"set_main_scene":
+			return _set_main_scene(params)
 		"set_project_setting":
 			return _set_project_setting(params)
 		"add_input_action":
@@ -210,22 +214,25 @@ func _get_scene_tree() -> Dictionary:
 	if not scene_root or (tree and scene_root == tree.root):
 		return { "status": "error", "message": "Nenhuma cena de jogo ativa para obter a árvore de nós no momento." }
 		
-	var tree_data = _serialize_node_tree(scene_root)
+	var tree_data = _serialize_node_tree(scene_root, scene_root)
 	return { "status": "success", "scene_root_name": scene_root.name, "tree": tree_data }
 
-func _serialize_node_tree(node: Node) -> Dictionary:
+func _serialize_node_tree(node: Node, scene_root: Node) -> Dictionary:
 	var children_data = []
 	for child in node.get_children():
-		children_data.append(_serialize_node_tree(child))
-		
+		children_data.append(_serialize_node_tree(child, scene_root))
+
 	var props = {
 		"position": node.position if "position" in node else null,
 		"visible": node.visible if "visible" in node else true
 	}
+	# Caminho RELATIVO à raiz da cena ("." para a raiz, "Player/Col" para filhos)
+	# — é o que as ferramentas aceitam em node_path. Nunca o get_path() absoluto.
+	var rel := "." if node == scene_root else str(scene_root.get_path_to(node))
 	return {
 		"name": node.name,
 		"type": node.get_class(),
-		"path": str(node.get_path()),
+		"path": rel,
 		"properties": props,
 		"children": children_data
 	}
@@ -271,7 +278,54 @@ func _add_node(params: Dictionary) -> Dictionary:
 				new_node.set(prop, _coerce_value(new_node, prop, params["properties"][prop]))
 
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó '%s' (%s) adicionado em '%s' da cena '%s'." % [node_name, node_type, parent_node.name, scene_root.scene_file_path], "node_path": str(new_node.get_path()) }
+	# Caminho RELATIVO à raiz da cena (ex: "Player/Col") — é o que as outras
+	# ferramentas esperam. NUNCA devolver o get_path() absoluto (inclui a
+	# hierarquia interna do editor e quebra chamadas seguintes).
+	var rel_path := str(scene_root.get_path_to(new_node))
+	return { "status": "success", "message": "Nó '%s' (%s) adicionado em '%s'. Use node_path='%s'." % [node_name, node_type, parent_node.name, rel_path], "node_path": rel_path }
+
+# Cria vários nós de uma vez (uma subárvore). Reduz round-trips — o modelo monta
+# a cena inteira num passo. Processa em ordem: pais antes dos filhos. Cada item é
+# {node_type, node_name, parent_path, properties} como em add_node.
+func _add_nodes_batch(params: Dictionary) -> Dictionary:
+	var specs = params.get("nodes", [])
+	if not (specs is Array) or specs.is_empty():
+		return { "status": "error", "message": "Envie 'nodes' como um array de {node_type, node_name, parent_path, properties}." }
+	var results: Array = []
+	var created := 0
+	var failed := 0
+	for spec in specs:
+		if not (spec is Dictionary):
+			results.append({ "status": "error", "message": "item inválido (esperado objeto)." })
+			failed += 1
+			continue
+		var r := _add_node(spec)
+		results.append(r)
+		if r.get("status") == "success":
+			created += 1
+		else:
+			failed += 1
+	return {
+		"status": "success" if failed == 0 else "partial",
+		"created": created,
+		"failed": failed,
+		"results": results,
+		"message": "%d nó(s) criado(s), %d falha(s)." % [created, failed]
+	}
+
+# Define a cena principal do projeto (application/run/main_scene) e salva. Um jogo
+# PRECISA de cena principal para rodar (F5) e exportar.
+func _set_main_scene(params: Dictionary) -> Dictionary:
+	var scene_path: String = str(params.get("scene_path", ""))
+	if scene_path == "" or not scene_path.ends_with(".tscn"):
+		return { "status": "error", "message": "Informe 'scene_path' terminando em .tscn." }
+	if not FileAccess.file_exists(scene_path):
+		return { "status": "error", "message": "Cena '%s' não existe no disco. Crie-a antes com godot_create_scene/godot_save_scene." % scene_path }
+	ProjectSettings.set_setting("application/run/main_scene", scene_path)
+	var err := ProjectSettings.save()
+	if err != OK:
+		return { "status": "error", "message": "Falha ao salvar project.godot (erro %d)." % err }
+	return { "status": "success", "message": "Cena principal definida como '%s'." % scene_path }
 
 func _remove_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
@@ -320,16 +374,27 @@ func _set_node_property(params: Dictionary) -> Dictionary:
 	_mark_scene_modified()
 	return { "status": "success", "message": "Propriedade '%s' de '%s' atualizada para %s na cena '%s'." % [property_name, target.name, str(value), scene_root.scene_file_path] }
 
-# Converte Arrays/Strings JSON em tipos nativos (Vector2/3, Color) baseado no valor atual da propriedade
+# Converte Arrays/Strings JSON em tipos nativos (Vector2/3, Color, recursos)
+# baseado no valor atual da propriedade.
 func _coerce_value(target: Object, property_name: String, value: Variant) -> Variant:
-	if value is Dictionary and value.has("__resource_type"):
-		var res_type = str(value["__resource_type"])
+	# Recurso INLINE: {"__resource_type":"RectangleShape2D","size":[32,32]} cria o
+	# recurso e o atribui — permite configurar shape de colisão, StyleBox, etc.
+	# numa única chamada de add_node/set_node_property.
+	if value is Dictionary and (value.has("__resource_type") or value.has("__resource")):
+		var res_type = str(value.get("__resource_type", value.get("__resource", "")))
 		if ClassDB.class_exists(res_type) and ClassDB.is_parent_class(res_type, "Resource"):
 			var res = ClassDB.instantiate(res_type)
 			for k in value:
-				if k != "__resource_type" and k in res:
+				if k != "__resource_type" and k != "__resource" and k in res:
 					res.set(k, _coerce_value(res, k, value[k]))
 			return res
+
+	# Caminho res:// para um recurso já no disco (textura de Sprite2D, .tres de
+	# shape, PackedScene...) -> carrega e atribui o Resource, não a String.
+	if value is String and value.begins_with("res://") and ResourceLoader.exists(value):
+		var loaded = load(value)
+		if loaded != null:
+			return loaded
 
 	var current = target.get(property_name)
 	if value is Array:
@@ -350,6 +415,14 @@ func _get_edited_scene_root() -> Node:
 	if tree:
 		return tree.current_scene
 	return null
+
+# Caminho de um nó RELATIVO à raiz da cena editada ("." p/ raiz, "Player/Col").
+# É o formato que todas as ferramentas aceitam; nunca devolver get_path() absoluto.
+func _rel_path(node: Node) -> String:
+	var root := _get_edited_scene_root()
+	if root and node:
+		return "." if node == root else str(root.get_path_to(node))
+	return str(node.get_path()) if node else ""
 
 func _mark_scene_modified() -> void:
 	if editor_plugin and Engine.is_editor_hint():
@@ -448,7 +521,7 @@ func _rename_node(params: Dictionary) -> Dictionary:
 	var old_name := String(target.name)
 	target.name = new_name
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó '%s' renomeado para '%s'." % [old_name, target.name], "node_path": str(target.get_path()) }
+	return { "status": "success", "message": "Nó '%s' renomeado para '%s'." % [old_name, target.name], "node_path": _rel_path(target) }
 
 func _reparent_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
@@ -471,7 +544,7 @@ func _reparent_node(params: Dictionary) -> Dictionary:
 	for child in target.find_children("*", "", true, false):
 		child.owner = scene_root
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó '%s' movido para debaixo de '%s'." % [target.name, new_parent.name], "node_path": str(target.get_path()) }
+	return { "status": "success", "message": "Nó '%s' movido para debaixo de '%s'." % [target.name, new_parent.name], "node_path": _rel_path(target) }
 
 func _create_scene(params: Dictionary) -> Dictionary:
 	var scene_path: String = str(params.get("scene_path", ""))
@@ -535,7 +608,7 @@ func _instantiate_scene(params: Dictionary) -> Dictionary:
 	parent_node.add_child(instance)
 	instance.owner = scene_root
 	_mark_scene_modified()
-	return { "status": "success", "message": "Instância de '%s' adicionada em '%s'." % [scene_path, parent_node.name], "node_path": str(instance.get_path()) }
+	return { "status": "success", "message": "Instância de '%s' adicionada em '%s'." % [scene_path, parent_node.name], "node_path": _rel_path(instance) }
 
 func _save_scene() -> Dictionary:
 	if editor_plugin and Engine.is_editor_hint():
@@ -1034,7 +1107,7 @@ func _duplicate_node(params: Dictionary) -> Dictionary:
 	for c in dup.find_children("*", "", true, false):
 		c.owner = scene_root
 	_mark_scene_modified()
-	return { "status": "success", "message": "Nó duplicado como '%s'." % dup.name, "node_path": str(dup.get_path()) }
+	return { "status": "success", "message": "Nó duplicado como '%s'." % dup.name, "node_path": _rel_path(dup) }
 
 func _add_to_group(params: Dictionary) -> Dictionary:
 	var target := _resolve_scene_node(params)
