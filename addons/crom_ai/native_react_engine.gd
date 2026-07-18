@@ -24,7 +24,7 @@ func send_user_prompt(prompt: String) -> void:
 	
 	_write_go_workspace_config()
 	
-	var binary_path = _get_binary_path()
+	var binary_path: String = _get_binary_path()
 	if binary_path == "" or not FileAccess.file_exists(binary_path):
 		emit_signal("message_added", "system", "Erro: Binário 'crom-agente' não encontrado no plugin.")
 		is_busy = false
@@ -33,8 +33,8 @@ func send_user_prompt(prompt: String) -> void:
 		
 	emit_signal("message_added", "system", "Iniciando motor Go (crom-agente)...")
 	
-	var arguments = ["run", prompt]
-	var res = OS.execute_with_pipe(binary_path, arguments)
+	var arguments: PackedStringArray = ["run", prompt]
+	var res: Dictionary = OS.execute_with_pipe(binary_path, arguments)
 	if res.has("pid") and res.get("pid") > 0:
 		_go_pid = res["pid"]
 		_go_pipe = res["stdio"]
@@ -45,9 +45,9 @@ func send_user_prompt(prompt: String) -> void:
 		emit_signal("react_finished", "Erro na execução.")
 
 func _get_binary_path() -> String:
-	var base_path = ProjectSettings.globalize_path("res://addons/crom_ai/bin/")
-	var os_name = OS.get_name()
-	var bin_name = ""
+	var base_path: String = ProjectSettings.globalize_path("res://addons/crom_ai/bin/")
+	var os_name: String = OS.get_name()
+	var bin_name: String = ""
 	
 	match os_name:
 		"Windows":
@@ -59,16 +59,16 @@ func _get_binary_path() -> String:
 		_:
 			bin_name = "crom-agente"
 			
-	var full_path = base_path.path_join(bin_name)
+	var full_path: String = base_path.path_join(bin_name)
 	if FileAccess.file_exists(full_path):
 		return full_path
 		
 	# Fallbacks
-	var local_fallback = base_path.path_join("crom-agente")
+	var local_fallback: String = base_path.path_join("crom-agente")
 	if FileAccess.file_exists(local_fallback):
 		return local_fallback
 		
-	var dev_fallback = "/home/j/Documentos/GitHub/crom-agente/bin/crom-agente"
+	var dev_fallback: String = "/home/j/Documentos/GitHub/crom-agente/bin/crom-agente"
 	if FileAccess.file_exists(dev_fallback):
 		return dev_fallback
 		
@@ -88,12 +88,12 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if _go_pipe and _go_pipe is FileAccess and _go_pipe.is_open():
-		var avail = _go_pipe.get_length()
+		var avail: int = _go_pipe.get_length()
 		if avail > 0:
-			var buffer = _go_pipe.get_buffer(avail)
-			var chunk = buffer.get_string_from_utf8()
+			var buffer: PackedByteArray = _go_pipe.get_buffer(avail)
+			var chunk: String = buffer.get_string_from_utf8()
 			if chunk != "":
-				var clean_chunk = _clean_ansi_escape_codes(chunk)
+				var clean_chunk: String = _clean_ansi_escape_codes(chunk)
 				emit_signal("message_added", "assistant", clean_chunk)
 				
 		if not OS.is_process_running(_go_pid):
@@ -106,18 +106,18 @@ func _process(_delta: float) -> void:
 			emit_signal("react_finished", "Processo Go concluído.")
 
 func _clean_ansi_escape_codes(text: String) -> String:
-	var regex = RegEx.new()
+	var regex: RegEx = RegEx.new()
 	regex.compile("\\\\x1B\\\\[[0-9;]*[a-zA-Z]")
-	var res = regex.sub(text, "", true)
+	var res: String = regex.sub(text, "", true)
 	res = res.replace("\u001b", "")
 	return res
 
 func _write_go_workspace_config() -> void:
-	var dir_path = "res://.crom"
+	var dir_path: String = "res://.crom"
 	if not DirAccess.dir_exists_absolute(dir_path):
 		DirAccess.make_dir_recursive_absolute(dir_path)
 		
-	var config_data = {
+	var config_data: Dictionary = {
 		"workspace_name": "GodotProjectWorkspace",
 		"provider": _provider,
 		"model": _model,
@@ -126,19 +126,19 @@ func _write_go_workspace_config() -> void:
 		"auto_verify": true
 	}
 	
-	var f = FileAccess.open("res://.crom/config.json", FileAccess.WRITE)
+	var f: FileAccess = FileAccess.open("res://.crom/config.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(config_data, "\t"))
 		f.close()
 		
-	var env_content = ""
+	var env_content: String = ""
 	match _provider:
 		"openrouter": env_content = "OPENROUTER_API_KEY=" + _api_key
 		"ollama": env_content = "OLLAMA_HOST=http://localhost:11434"
 		"cromia": env_content = "CROMIA_API_KEY=" + _api_key
 		"openai": env_content = "OPENAI_API_KEY=" + _api_key
 		
-	var f_env = FileAccess.open("res://.crom/.env", FileAccess.WRITE)
+	var f_env: FileAccess = FileAccess.open("res://.crom/.env", FileAccess.WRITE)
 	if f_env:
 		f_env.store_string(env_content)
 		f_env.close()

@@ -8,15 +8,75 @@
 #   ./scripts/build_release.sh linux    # Builda só Linux
 #   ./scripts/build_release.sh windows  # Builda só Windows
 #   ./scripts/build_release.sh macos    # Builda só macOS
+#   ./scripts/build_release.sh sync     # Só sincroniza o addon para releases/
+#
+# Além do export, o script sincroniza addons/crom_ai/ para o bundle portátil
+# releases/ (gitignorado), levando apenas o binário da plataforma do host.
 # ==============================================================================
 
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 RELEASE_DIR="${PROJECT_DIR}/release"
+RELEASES_DIR="${PROJECT_DIR}/releases"
 GODOT_BIN="${GODOT_BIN:-godot}"
 VERSION="1.0.0"
 APP_NAME="CromAI"
+TARGET="${1:-all}"
+
+# Sufixo de binário do host (mesma lógica de crom_plugin._current_bin_suffix).
+host_bin_suffix() {
+    local arch="amd64"
+    case "$(uname -m)" in
+        aarch64|arm64) arch="arm64" ;;
+    esac
+    case "$(uname -s)" in
+        Darwin) echo "darwin-${arch}" ;;
+        MINGW*|MSYS*|CYGWIN*) echo "windows-${arch}.exe" ;;
+        *) echo "linux-${arch}" ;;
+    esac
+}
+
+# Espelha addons/crom_ai/ em releases/addons/crom_ai/, com bin/ contendo só o
+# binário do host + CLI (mesma regra de crom_plugin._prune_foreign_binaries).
+sync_releases_addon() {
+    if [ ! -d "${RELEASES_DIR}" ]; then
+        echo "AVISO: ${RELEASES_DIR} não existe; pulando sync do addon."
+        return 0
+    fi
+    local SRC="${PROJECT_DIR}/addons/crom_ai"
+    local DST="${RELEASES_DIR}/addons/crom_ai"
+    local SUFFIX
+    SUFFIX="$(host_bin_suffix)"
+
+    echo ""
+    echo "--- Sync releases/addons/crom_ai (binário: ${SUFFIX}) ---"
+    mkdir -p "${DST}/bin"
+    rsync -a --delete --exclude "bin/" --exclude "chat_history/" "${SRC}/" "${DST}/"
+
+    for f in "crom-agente-${SUFFIX}" "godot-mcp-${SUFFIX}" "crom-agente" "crom-agente-cli"; do
+        if [ -f "${SRC}/bin/${f}" ]; then
+            cp -a "${SRC}/bin/${f}" "${DST}/bin/${f}"
+        fi
+    done
+
+    local removed=0
+    local base
+    for f in "${DST}/bin/"crom-agente-* "${DST}/bin/"godot-mcp-*; do
+        [ -f "$f" ] || continue
+        base="$(basename "$f")"
+        if [[ "${base}" != *"${SUFFIX}" && "${base}" != "crom-agente-cli" ]]; then
+            rm -f "$f"
+            removed=$((removed + 1))
+        fi
+    done
+    echo "OK: addon sincronizado em ${DST} (${removed} binário(s) de outras plataformas removido(s))"
+}
+
+if [ "${TARGET}" = "sync" ]; then
+    sync_releases_addon
+    exit 0
+fi
 
 echo "======================================"
 echo "  CromAI Build Release v${VERSION}"
@@ -124,9 +184,6 @@ build_platform() {
     fi
 }
 
-# Determinar quais plataformas buildar
-TARGET="${1:-all}"
-
 case "${TARGET}" in
     linux)
         build_platform "Linux" "linux" "CromAI.x86_64"
@@ -143,10 +200,12 @@ case "${TARGET}" in
         build_platform "macOS" "macos" "CromAI.zip"
         ;;
     *)
-        echo "Uso: $0 [linux|windows|macos|all]"
+        echo "Uso: $0 [linux|windows|macos|all|sync]"
         exit 1
         ;;
 esac
+
+sync_releases_addon
 
 echo ""
 echo "======================================"

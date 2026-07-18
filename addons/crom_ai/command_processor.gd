@@ -12,7 +12,7 @@ func _init(plugin: EditorPlugin = null) -> void:
 	editor_plugin = plugin
 
 func process_command(command_json: String) -> Dictionary:
-	var parse_result = JSON.parse_string(command_json)
+	var parse_result: Variant = JSON.parse_string(command_json)
 	if parse_result == null or not (parse_result is Dictionary):
 		return { "status": "error", "message": "JSON inválido mal formatado." }
 	
@@ -120,6 +120,26 @@ func process_command(command_json: String) -> Dictionary:
 			return _query_runtime("get_property", params)
 		"record_property_over_time":
 			return _record_property_over_time(params)
+
+		# ======================================================================
+		# 1c. NOVAS FERRAMENTAS MCP (script edit, TileMap, Animation, Camera, Docs)
+		# ======================================================================
+		"set_script_source":
+			return _set_script_source(params)
+		"detach_script":
+			return _detach_script(params)
+		"set_tilemap_cell":
+			return _set_tilemap_cell(params)
+		"get_tilemap_cells":
+			return _get_tilemap_cells(params)
+		"list_animations":
+			return _list_animations(params)
+		"play_animation":
+			return _play_animation(params)
+		"set_camera_target":
+			return _set_camera_target(params)
+		"docs_search":
+			return _docs_search(params)
 		"verify_playable":
 			return _verify_playable(params)
 
@@ -245,7 +265,7 @@ func _add_node(params: Dictionary) -> Dictionary:
 	if not ClassDB.class_exists(node_type):
 		return { "status": "error", "message": "Classe/Tipo de nó desconhecido: '%s'." % node_type }
 		
-	var new_node = ClassDB.instantiate(node_type)
+	var new_node: Variant = ClassDB.instantiate(node_type)
 	if not new_node or not (new_node is Node):
 		return { "status": "error", "message": "Falha ao instanciar o nó '%s'." % node_type }
 		
@@ -350,7 +370,7 @@ func _remove_node(params: Dictionary) -> Dictionary:
 func _set_node_property(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
 	var property_name: String = str(params.get("property", params.get("property_name", "")))
-	var value = params.get("value")
+	var value: Variant = params.get("value")
 	
 	if node_path == "" or property_name == "":
 		return { "status": "error", "message": "Os parâmetros 'node_path' e 'property' são obrigatórios." }
@@ -381,9 +401,9 @@ func _coerce_value(target: Object, property_name: String, value: Variant) -> Var
 	# recurso e o atribui — permite configurar shape de colisão, StyleBox, etc.
 	# numa única chamada de add_node/set_node_property.
 	if value is Dictionary and (value.has("__resource_type") or value.has("__resource")):
-		var res_type = str(value.get("__resource_type", value.get("__resource", "")))
+		var res_type: String = str(value.get("__resource_type", value.get("__resource", "")))
 		if ClassDB.class_exists(res_type) and ClassDB.is_parent_class(res_type, "Resource"):
-			var res = ClassDB.instantiate(res_type)
+			var res: Variant = ClassDB.instantiate(res_type)
 			for k in value:
 				if k != "__resource_type" and k != "__resource" and k in res:
 					res.set(k, _coerce_value(res, k, value[k]))
@@ -396,7 +416,7 @@ func _coerce_value(target: Object, property_name: String, value: Variant) -> Var
 		if loaded != null:
 			return loaded
 
-	var current = target.get(property_name)
+	var current: Variant = target.get(property_name)
 	if value is Array:
 		if current is Vector2 and value.size() >= 2:
 			return Vector2(value[0], value[1])
@@ -462,7 +482,7 @@ func _connect_signal(params: Dictionary) -> Dictionary:
 	# em vez de bloquear (CONNECT_PERSIST salva na cena; o Godot resolve em runtime).
 	var method_ok := to_node.has_method(method)
 	if not method_ok:
-		var sc = to_node.get_script()
+		var sc: Variant = to_node.get_script()
 		if sc and sc is Script:
 			for m in sc.get_script_method_list():
 				if str(m.get("name", "")) == method:
@@ -485,7 +505,7 @@ func _connect_signal(params: Dictionary) -> Dictionary:
 
 func _move_node(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", ""))
-	var pos = params.get("position")
+	var pos: Variant = params.get("position")
 	if node_path == "" or not (pos is Array) or pos.size() < 2:
 		return { "status": "error", "message": "Parâmetros obrigatórios: 'node_path' e 'position' ([x, y] ou [x, y, z])." }
 
@@ -556,7 +576,7 @@ func _create_scene(params: Dictionary) -> Dictionary:
 	if not ClassDB.class_exists(root_type) or not ClassDB.is_parent_class(root_type, "Node"):
 		return { "status": "error", "message": "Tipo de nó raiz inválido: '%s'." % root_type }
 
-	var root = ClassDB.instantiate(root_type)
+	var root: Variant = ClassDB.instantiate(root_type)
 	root.name = root_name if root_name != "" else "Root"
 
 	var packed := PackedScene.new()
@@ -589,7 +609,7 @@ func _instantiate_scene(params: Dictionary) -> Dictionary:
 
 	if not FileAccess.file_exists(scene_path):
 		return { "status": "error", "message": "Cena não encontrada: '%s'." % scene_path }
-	var packed = load(scene_path)
+	var packed: Variant = load(scene_path)
 	if not (packed is PackedScene):
 		return { "status": "error", "message": "O arquivo '%s' não é uma PackedScene válida." % scene_path }
 
@@ -644,7 +664,7 @@ func _set_project_setting(params: Dictionary) -> Dictionary:
 
 func _add_input_action(params: Dictionary) -> Dictionary:
 	var action_name: String = str(params.get("action_name", "")).strip_edges()
-	var keys = params.get("keys", [])
+	var keys: Variant = params.get("keys", [])
 	if action_name == "" or not (keys is Array) or keys.is_empty():
 		return { "status": "error", "message": "Parâmetros obrigatórios: 'action_name' e 'keys' (ex: [\"W\", \"Up\"])." }
 
@@ -739,7 +759,7 @@ func _simulate_editor_input(params: Dictionary) -> Dictionary:
 	var action_name: String = str(params.get("action_name", "ui_accept"))
 	var pressed: bool = bool(params.get("pressed", true))
 	var key_name: String = str(params.get("key_name", "")).to_lower()
-	var click_pos = params.get("click_position", null)
+	var click_pos: Variant = params.get("click_position", null)
 	
 	var ev = InputEventAction.new()
 	ev.action = action_name
@@ -780,11 +800,11 @@ func _capture_screenshot(_params: Dictionary) -> Dictionary:
 		vp = editor_plugin.get_editor_interface().get_base_control().get_viewport()
 	if not vp:
 		return { "status": "error", "message": "Viewport não encontrado para captura." }
-	var img = vp.get_texture().get_image()
+	var img: Image = vp.get_texture().get_image()
 	if not img:
 		return { "status": "error", "message": "Falha ao obter imagem do viewport." }
 	img.resize(640, 360) # Redimensiona para economizar tokens
-	var buffer = img.save_png_to_buffer()
+	var buffer: PackedByteArray = img.save_png_to_buffer()
 	var b64 = Marshalls.raw_to_base64(buffer)
 	return { "status": "success", "image_base64": b64, "format": "png" }
 
@@ -862,7 +882,7 @@ func _list_project_dir(params: Dictionary) -> Dictionary:
 	var directories := []
 	
 	dir.list_dir_begin()
-	var file_name = dir.get_next()
+	var file_name: String = dir.get_next()
 	while file_name != "":
 		if file_name != "." and file_name != "..":
 			if dir.current_is_dir():
@@ -905,7 +925,7 @@ func _read_log_tail(max_bytes: int = 60000) -> String:
 	if not f:
 		return ""
 	var size := f.get_length()
-	var start := _log_baseline if _log_baseline > 0 and _log_baseline < size else max(0, size - max_bytes)
+	var start: int = int(_log_baseline if _log_baseline > 0 and _log_baseline < size else maxi(0, size - max_bytes))
 	f.seek(start)
 	var txt := f.get_buffer(size - start).get_string_from_utf8()
 	f.close()
@@ -937,7 +957,7 @@ func _get_output(params: Dictionary) -> Dictionary:
 	var txt := _read_log_tail()
 	var lines := txt.split("\n")
 	var out: Array[String] = []
-	var startn := max(0, lines.size() - n)
+	var startn: int = int(maxi(0, lines.size() - n))
 	for i in range(startn, lines.size()):
 		var l := String(lines[i]).strip_edges()
 		if l != "":
@@ -986,7 +1006,7 @@ func _read_script(params: Dictionary) -> Dictionary:
 	var target := _resolve_scene_node(params)
 	if not target:
 		return { "status": "error", "message": "Nó não encontrado." }
-	var sc = target.get_script()
+	var sc: Variant = target.get_script()
 	if not sc:
 		return { "status": "success", "has_script": false, "message": "O nó '%s' não tem script." % target.name }
 	return { "status": "success", "has_script": true, "script_path": sc.resource_path, "source": sc.source_code }
@@ -1152,7 +1172,7 @@ func _create_resource(params: Dictionary) -> Dictionary:
 		return { "status": "error", "message": "resource_type inválido: '%s'." % res_type }
 	if not ClassDB.is_parent_class(res_type, "Resource"):
 		return { "status": "error", "message": "'%s' não é um Resource." % res_type }
-	var res = ClassDB.instantiate(res_type)
+	var res: Variant = ClassDB.instantiate(res_type)
 	if not (res is Resource):
 		return { "status": "error", "message": "Falha ao instanciar '%s'." % res_type }
 	if params.has("properties") and params["properties"] is Dictionary:
@@ -1336,3 +1356,336 @@ func _record_property_over_time(params: Dictionary) -> Dictionary:
 		"changed": changed,
 		"message": ("'%s.%s' MUDOU ao longo do tempo — movimento/animação detectado." % [node_path, prop]) if changed else ("'%s.%s' NÃO mudou — nada se move (possível bug: timer parado, sinal não conectado, etc.)." % [node_path, prop])
 	}
+
+# ==============================================================================
+# crom-godot-mcp — Ferramentas MCP adicionais (script edit, TileMap, Animation,
+# Camera2D, docs_search)
+# ==============================================================================
+
+# Altera o código-fonte de um script que já está anexado a um nó (ou de um .gd
+# no disco via script_path). Não recria o nó — só substitui o source_code.
+func _set_script_source(params: Dictionary) -> Dictionary:
+	var node_path: String = str(params.get("node_path", ""))
+	var script_path: String = str(params.get("script_path", ""))
+	var code: String = str(params.get("gdscript_code", params.get("code", "")))
+	if code == "":
+		return { "status": "error", "message": "O parâmetro 'gdscript_code' é obrigatório." }
+
+	var target_script: Script = null
+	var resolved_path := script_path
+
+	# Via node_path: pega o script do nó
+	if node_path != "":
+		var scene_root := _get_edited_scene_root()
+		if not scene_root:
+			return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+		var target: Node = _resolve_node(scene_root, node_path)
+		if not target:
+			return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+		target_script = target.get_script() as Script
+		if not target_script:
+			return { "status": "error", "message": "O nó '%s' não tem script anexado. Use godot_create_and_attach_script para criar." % target.name }
+		resolved_path = target_script.resource_path
+
+	# Via script_path: carrega o script do disco
+	elif script_path != "":
+		if not FileAccess.file_exists(script_path):
+			return { "status": "error", "message": "Script não encontrado: '%s'." % script_path }
+		target_script = ResourceLoader.load(script_path, "Script", ResourceLoader.CACHE_MODE_REPLACE) as Script
+		if not target_script:
+			return { "status": "error", "message": "Falha ao carregar o script '%s'." % script_path }
+	else:
+		return { "status": "error", "message": "Informe 'node_path' ou 'script_path'." }
+
+	# Escreve no disco e recarrega
+	if resolved_path != "":
+		var f: FileAccess = FileAccess.open(resolved_path, FileAccess.WRITE)
+		if not f:
+			return { "status": "error", "message": "Falha ao escrever em '%s'." % resolved_path }
+		f.store_string(code)
+		f.close()
+		_refresh_editor_filesystem()
+		ResourceLoader.load(resolved_path, "Script", ResourceLoader.CACHE_MODE_REPLACE)
+	return { "status": "success", "message": "Source de '%s' atualizado (%d bytes)." % [resolved_path, code.length()], "script_path": resolved_path }
+
+# Remove o script de um nó sem excluir o arquivo .gd do disco.
+func _detach_script(params: Dictionary) -> Dictionary:
+	var node_path: String = str(params.get("node_path", "."))
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+	if not target.get_script():
+		return { "status": "success", "message": "O nó '%s' já não tem script." % target.name }
+	var old_path: String = ""
+	var sc: Script = target.get_script() as Script
+	if sc:
+		old_path = sc.resource_path
+	target.set_script(null)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Script removido do nó '%s'.%s" % [target.name, (" O arquivo '%s' permanece no disco." % old_path) if old_path != "" else ""] }
+
+# --- TileMap helpers ---
+
+# Define uma célula no TileMapLayer (Godot 4.3+). Para TileMap legado, usa set_cell.
+func _set_tilemap_cell(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var coords_raw: Variant = params.get("coords", [0, 0])
+	if not (coords_raw is Array) or coords_raw.size() < 2:
+		return { "status": "error", "message": "'coords' deve ser [x, y]." }
+	var coords := Vector2i(int(coords_raw[0]), int(coords_raw[1]))
+	var source_id: int = int(params.get("source_id", 0))
+	var atlas_raw: Variant = params.get("atlas_coords", [0, 0])
+	var atlas_coords := Vector2i(int(atlas_raw[0]) if atlas_raw is Array and atlas_raw.size() >= 2 else 0, int(atlas_raw[1]) if atlas_raw is Array and atlas_raw.size() >= 2 else 0)
+	var alt_id: int = int(params.get("alternative_tile", 0))
+
+	# TileMapLayer (Godot 4.3+)
+	if target is TileMapLayer:
+		target.set_cell(coords, source_id, atlas_coords, alt_id)
+		_mark_scene_modified()
+		return { "status": "success", "message": "Célula (%d, %d) definida no TileMapLayer '%s'." % [coords.x, coords.y, target.name] }
+	# TileMap legado (layer como param)
+	elif target is TileMap:
+		var layer: int = int(params.get("layer", 0))
+		target.set_cell(layer, coords, source_id, atlas_coords, alt_id)
+		_mark_scene_modified()
+		return { "status": "success", "message": "Célula (%d, %d) definida no TileMap '%s' (layer %d)." % [coords.x, coords.y, target.name, layer] }
+	return { "status": "error", "message": "O nó '%s' (%s) não é TileMap ou TileMapLayer." % [target.name, target.get_class()] }
+
+# Retorna as células usadas de um TileMap/TileMapLayer.
+func _get_tilemap_cells(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var cells: Array = []
+	if target is TileMapLayer:
+		for c: Vector2i in target.get_used_cells():
+			cells.append([c.x, c.y])
+	elif target is TileMap:
+		var layer: int = int(params.get("layer", 0))
+		for c: Vector2i in target.get_used_cells(layer):
+			cells.append([c.x, c.y])
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é TileMap ou TileMapLayer." % [target.name, target.get_class()] }
+	return { "status": "success", "cell_count": cells.size(), "cells": cells, "message": "%d célula(s) usada(s)." % cells.size() }
+
+# --- Animation helpers ---
+
+# Lista as animações de um AnimationPlayer ou os sprite_frames de um AnimatedSprite2D.
+func _list_animations(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var names: Array[String] = []
+	if target is AnimationPlayer:
+		for anim_name: StringName in target.get_animation_list():
+			names.append(str(anim_name))
+	elif target is AnimatedSprite2D:
+		var frames: SpriteFrames = target.sprite_frames
+		if frames:
+			for anim_name: StringName in frames.get_animation_names():
+				names.append(str(anim_name))
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é AnimationPlayer ou AnimatedSprite2D." % [target.name, target.get_class()] }
+	return { "status": "success", "node": target.name, "animations": names, "message": "%d animação(ões) encontrada(s)." % names.size() }
+
+# Toca uma animação por nome num AnimationPlayer ou AnimatedSprite2D.
+func _play_animation(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var anim_name: String = str(params.get("animation_name", params.get("name", "")))
+	if anim_name == "":
+		return { "status": "error", "message": "O parâmetro 'animation_name' é obrigatório." }
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	if target is AnimationPlayer:
+		if not target.has_animation(anim_name):
+			return { "status": "error", "message": "Animação '%s' não existe no AnimationPlayer '%s'." % [anim_name, target.name] }
+		target.play(anim_name)
+		return { "status": "success", "message": "Animação '%s' tocando no AnimationPlayer '%s'." % [anim_name, target.name] }
+	elif target is AnimatedSprite2D:
+		target.play(anim_name)
+		return { "status": "success", "message": "Animação '%s' tocando no AnimatedSprite2D '%s'." % [anim_name, target.name] }
+	return { "status": "error", "message": "O nó '%s' (%s) não suporta play de animação." % [target.name, target.get_class()] }
+
+# --- Camera2D helper ---
+
+# Configura zoom, position e limits de uma Camera2D.
+func _set_camera_target(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+	if not (target is Camera2D):
+		return { "status": "error", "message": "O nó '%s' (%s) não é Camera2D." % [target.name, target.get_class()] }
+
+	var cam: Camera2D = target as Camera2D
+	var changes: Array[String] = []
+
+	if params.has("position"):
+		var pos: Variant = params["position"]
+		if pos is Array and pos.size() >= 2:
+			cam.position = Vector2(pos[0], pos[1])
+			changes.append("position=%s" % str(cam.position))
+	if params.has("zoom"):
+		var z: Variant = params["zoom"]
+		if z is Array and z.size() >= 2:
+			cam.zoom = Vector2(z[0], z[1])
+		elif z is float or z is int:
+			cam.zoom = Vector2(float(z), float(z))
+		changes.append("zoom=%s" % str(cam.zoom))
+	if params.has("limit_left"):
+		cam.limit_left = int(params["limit_left"])
+		changes.append("limit_left=%d" % cam.limit_left)
+	if params.has("limit_top"):
+		cam.limit_top = int(params["limit_top"])
+		changes.append("limit_top=%d" % cam.limit_top)
+	if params.has("limit_right"):
+		cam.limit_right = int(params["limit_right"])
+		changes.append("limit_right=%d" % cam.limit_right)
+	if params.has("limit_bottom"):
+		cam.limit_bottom = int(params["limit_bottom"])
+		changes.append("limit_bottom=%d" % cam.limit_bottom)
+	if params.has("smoothing_enabled"):
+		cam.position_smoothing_enabled = bool(params["smoothing_enabled"])
+		changes.append("smoothing=%s" % str(cam.position_smoothing_enabled))
+
+	if changes.is_empty():
+		return { "status": "error", "message": "Nenhuma propriedade foi alterada. Informe position, zoom, limit_*, ou smoothing_enabled." }
+	_mark_scene_modified()
+	return { "status": "success", "message": "Camera2D '%s' atualizada: %s." % [cam.name, ", ".join(changes)] }
+
+# --- docs_search: busca textual na documentação Godot offline ---
+
+var _docs_cache: Dictionary = {}  # path -> content
+var _docs_index_built: bool = false
+
+func _docs_ensure_extracted() -> String:
+	var cache_dir := "user://crom_docs_cache"
+	var marker := cache_dir.path_join(".extracted")
+	if FileAccess.file_exists(marker):
+		return cache_dir
+	# Extrai o zip da documentação
+	var zip_path := "res://addons/crom_ai/references/godot_docs_html.zip"
+	var global_zip := ProjectSettings.globalize_path(zip_path)
+	if not FileAccess.file_exists(global_zip):
+		return ""
+	var reader := ZIPReader.new()
+	if reader.open(global_zip) != OK:
+		return ""
+	DirAccess.make_dir_recursive_absolute(cache_dir)
+	for file_path: String in reader.get_files():
+		if not file_path.ends_with(".html"):
+			continue
+		var data: PackedByteArray = reader.read_file(file_path)
+		var dst := cache_dir.path_join(file_path.get_file())
+		var f := FileAccess.open(dst, FileAccess.WRITE)
+		if f:
+			f.store_buffer(data)
+			f.close()
+	reader.close()
+	# Marker de conclusão
+	var mf := FileAccess.open(marker, FileAccess.WRITE)
+	if mf:
+		mf.store_string("ok")
+		mf.close()
+	return cache_dir
+
+func _docs_search(params: Dictionary) -> Dictionary:
+	var query: String = str(params.get("query", "")).strip_edges()
+	if query == "":
+		return { "status": "error", "message": "Parâmetro 'query' obrigatório (ex: 'TileMap', 'move_and_slide')." }
+	var max_results: int = clampi(int(params.get("max_results", 5)), 1, 20)
+
+	var cache_dir := _docs_ensure_extracted()
+	if cache_dir == "":
+		return { "status": "error", "message": "Documentação offline não encontrada em res://addons/crom_ai/references/godot_docs_html.zip." }
+
+	# Busca nos HTMLs extraídos (substring case-insensitive)
+	var dir := DirAccess.open(cache_dir)
+	if not dir:
+		return { "status": "error", "message": "Falha ao abrir cache de docs." }
+
+	var query_lower := query.to_lower()
+	var results: Array[Dictionary] = []
+
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if fname.ends_with(".html"):
+			# Checar no nome do arquivo primeiro (rápido)
+			if fname.to_lower().contains(query_lower):
+				var content := _docs_read_and_strip(cache_dir.path_join(fname), query_lower)
+				results.append({ "file": fname.get_basename(), "snippet": content, "match": "title" })
+				if results.size() >= max_results:
+					break
+			elif results.size() < max_results:
+				# Busca no conteúdo (mais lento)
+				var full_path := cache_dir.path_join(fname)
+				if _docs_cache.has(full_path):
+					var cached: String = _docs_cache[full_path]
+					if cached.to_lower().contains(query_lower):
+						var snippet := _docs_extract_snippet(cached, query_lower)
+						results.append({ "file": fname.get_basename(), "snippet": snippet, "match": "content" })
+				else:
+					var raw := FileAccess.get_file_as_string(full_path)
+					if raw.length() < 500000:  # skip gigantic files
+						var stripped := _html_strip_tags(raw)
+						_docs_cache[full_path] = stripped
+						if stripped.to_lower().contains(query_lower):
+							var snippet := _docs_extract_snippet(stripped, query_lower)
+							results.append({ "file": fname.get_basename(), "snippet": snippet, "match": "content" })
+		fname = dir.get_next()
+	dir.list_dir_end()
+
+	if results.is_empty():
+		return { "status": "success", "results": [], "message": "Nenhum resultado para '%s'. Use godot_class_reference para API de classes." % query }
+	return { "status": "success", "query": query, "result_count": results.size(), "results": results, "message": "%d resultado(s) encontrado(s) na documentação." % results.size() }
+
+func _docs_read_and_strip(path: String, _query_lower: String) -> String:
+	var raw := FileAccess.get_file_as_string(path)
+	var stripped := _html_strip_tags(raw)
+	_docs_cache[path] = stripped
+	return _docs_extract_snippet(stripped, _query_lower)
+
+func _docs_extract_snippet(text: String, query_lower: String) -> String:
+	var idx := text.to_lower().find(query_lower)
+	if idx < 0:
+		return text.substr(0, mini(500, text.length()))
+	var start := maxi(0, idx - 200)
+	var end_pos := mini(text.length(), idx + query_lower.length() + 300)
+	return text.substr(start, end_pos - start)
+
+func _html_strip_tags(html: String) -> String:
+	# Strip HTML rudimentar: remove tags e decodifica entidades comuns.
+	var regex := RegEx.new()
+	regex.compile("<[^>]+>")
+	var result := regex.sub(html, "", true)
+	result = result.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&#39;", "'").replace("&nbsp;", " ")
+	return result

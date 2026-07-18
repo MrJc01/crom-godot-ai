@@ -104,16 +104,12 @@ static func create_project(project_name: String, base_dir: String = "") -> Dicti
 	if err != OK:
 		return { "ok": false, "path": dest, "error": "Falha ao criar diretório (%d). Verifique permissões." % err }
 
-	# Copia o plugin CromAI do projeto master
+	# Copia o plugin CromAI do projeto master; bin/ é implantado à parte, só com
+	# os binários da plataforma atual (chat_history/ é estado local, não viaja).
 	var addons_src := master_project_path().path_join("addons/crom_ai")
 	if DirAccess.dir_exists_absolute(addons_src):
-		_copy_dir_recursive(addons_src, dest.path_join("addons/crom_ai"))
-		if OS.get_name() != "Windows":
-			var bin_dir := dest.path_join("addons/crom_ai/bin")
-			for file in ["crom-agente", "crom-agente-cli", "crom-agente-linux-amd64", "godot-mcp-linux-amd64"]:
-				var p := bin_dir.path_join(file)
-				if FileAccess.file_exists(p):
-					OS.execute("chmod", ["+x", ProjectSettings.globalize_path(p)])
+		_copy_dir_recursive(addons_src, dest.path_join("addons/crom_ai"), ["bin", "chat_history"])
+		_copy_platform_bins(addons_src.path_join("bin"), dest.path_join("addons/crom_ai/bin"))
 	var icon_src := master_project_path().path_join("icon.svg")
 	if FileAccess.file_exists(icon_src):
 		DirAccess.copy_absolute(icon_src, dest.path_join("icon.svg"))
@@ -306,7 +302,7 @@ static func _count_files_recursive(dir_path: String, stats: Dictionary) -> void:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
-static func _copy_dir_recursive(src: String, dst: String) -> void:
+static func _copy_dir_recursive(src: String, dst: String, exclude_dirs: Array = []) -> void:
 	DirAccess.make_dir_recursive_absolute(dst)
 	var dir := DirAccess.open(src)
 	if not dir:
@@ -314,7 +310,7 @@ static func _copy_dir_recursive(src: String, dst: String) -> void:
 	dir.list_dir_begin()
 	var entry := dir.get_next()
 	while not entry.is_empty():
-		if entry != "." and entry != "..":
+		if entry != "." and entry != ".." and not (dir.current_is_dir() and entry in exclude_dirs):
 			var s := src.path_join(entry)
 			var d := dst.path_join(entry)
 			if dir.current_is_dir():
@@ -323,6 +319,38 @@ static func _copy_dir_recursive(src: String, dst: String) -> void:
 				DirAccess.copy_absolute(s, d)
 		entry = dir.get_next()
 	dir.list_dir_end()
+
+# Sufixo do binário desta plataforma (espelha crom_plugin._current_bin_suffix).
+static func _current_bin_suffix() -> String:
+	var arch := "arm64" if Engine.get_architecture_name().contains("arm") else "amd64"
+	match OS.get_name():
+		"Windows":
+			return "windows-%s.exe" % arch
+		"macOS":
+			return "darwin-%s" % arch
+		_:
+			return "linux-%s" % arch
+
+# Implanta bin/ levando só o binário da plataforma atual + CLI (copiar os
+# ~200MB de todos os alvos estourava a quota de disco do projeto do usuário).
+static func _copy_platform_bins(src_bin: String, dst_bin: String) -> void:
+	if not DirAccess.dir_exists_absolute(src_bin):
+		return
+	DirAccess.make_dir_recursive_absolute(dst_bin)
+	var suffix := _current_bin_suffix()
+	var names: Array[String] = [
+		"crom-agente-" + suffix,
+		"godot-mcp-" + suffix,
+		"crom-agente",
+		"crom-agente-cli",
+	]
+	for fname in names:
+		var s := src_bin.path_join(fname)
+		if not FileAccess.file_exists(s):
+			continue
+		DirAccess.copy_absolute(s, dst_bin.path_join(fname))
+		if OS.get_name() != "Windows":
+			OS.execute("chmod", ["+x", dst_bin.path_join(fname)])
 
 static func _delete_dir_recursive(path: String) -> void:
 	var dir := DirAccess.open(path)

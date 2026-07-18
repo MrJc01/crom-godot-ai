@@ -141,6 +141,11 @@ var godotMCPTools = []mcpToolDef{
 		"action_name": {"string", "Nome da ação (ex: jump, move_left)"},
 		"keys":        {"array", "Nomes das teclas (ex: [\"Space\"], [\"W\", \"Up\"])"},
 	}, "action_name", "keys")},
+	{"godot_get_console_errors", "Retorna erros de execução (SCRIPT ERROR, Parse Error, etc.) recentes do console/logs do Godot.", schema(nil)},
+	{"godot_get_output", "Retorna as últimas linhas do output padrão do Godot (prints, logs, etc.).", schema(map[string][2]string{
+		"lines": {"number", "Número de linhas a ler (padrão: 60)"},
+	})},
+	{"godot_clear_output", "Limpa/reseta a leitura de logs para que get_console_errors/get_output só mostrem o que vier DEPOIS deste ponto.", schema(nil)},
 	{"godot_play_scene", "Executa uma cena no Godot (ou a cena principal se scene_path for omitido) para testar o jogo.", schema(map[string][2]string{
 		"scene_path": {"string", "Caminho res:// da cena a executar (opcional)"},
 	})},
@@ -156,6 +161,54 @@ var godotMCPTools = []mcpToolDef{
 	{"godot_list_project_dir", "Lista arquivos e subpastas de um diretório res:// do projeto Godot.", schema(map[string][2]string{
 		"dir_path": {"string", "Caminho res:// do diretório (padrão: res://)"},
 	})},
+
+	// --- Novas ferramentas MCP ---
+
+	{"godot_set_script_source", "Edita o código-fonte de um script GDScript JÁ existente (anexado a um nó ou no disco) sem recriar o nó. Use node_path para editar o script de um nó, ou script_path para editar direto pelo caminho res://.", schema(map[string][2]string{
+		"node_path":     {"string", "Caminho do nó cujo script será editado ('.' para a raiz). Opcional se script_path for dado."},
+		"script_path":   {"string", "Caminho res:// do arquivo .gd a editar. Opcional se node_path for dado."},
+		"gdscript_code": {"string", "Código GDScript 4 completo novo"},
+	}, "gdscript_code")},
+	{"godot_detach_script", "Remove o script de um nó da cena sem excluir o arquivo .gd do disco.", schema(map[string][2]string{
+		"node_path": {"string", "Caminho do nó ('.' para a raiz da cena)"},
+	}, "node_path")},
+
+	{"godot_set_tilemap_cell", "Define uma célula num TileMapLayer ou TileMap da cena aberta.", schema(map[string][2]string{
+		"node_path":        {"string", "Caminho do nó TileMap/TileMapLayer na cena"},
+		"coords":           {"array", "Coordenadas da célula [x, y]"},
+		"source_id":        {"number", "ID da fonte de tile no TileSet (padrão: 0)"},
+		"atlas_coords":     {"array", "Coordenadas no atlas [x, y] (padrão: [0,0])"},
+		"alternative_tile": {"number", "ID do tile alternativo (padrão: 0)"},
+		"layer":            {"number", "Layer do TileMap legado (só TileMap, padrão: 0)"},
+	}, "node_path", "coords")},
+	{"godot_get_tilemap_cells", "Retorna as células usadas de um TileMapLayer ou TileMap.", schema(map[string][2]string{
+		"node_path": {"string", "Caminho do nó TileMap/TileMapLayer"},
+		"layer":     {"number", "Layer do TileMap legado (só TileMap, padrão: 0)"},
+	}, "node_path")},
+
+	{"godot_list_animations", "Lista as animações de um AnimationPlayer ou os sprite_frames de um AnimatedSprite2D.", schema(map[string][2]string{
+		"node_path": {"string", "Caminho do nó AnimationPlayer ou AnimatedSprite2D"},
+	}, "node_path")},
+	{"godot_play_animation", "Toca uma animação por nome num AnimationPlayer ou AnimatedSprite2D.", schema(map[string][2]string{
+		"node_path":      {"string", "Caminho do nó AnimationPlayer ou AnimatedSprite2D"},
+		"animation_name": {"string", "Nome da animação a tocar"},
+	}, "node_path", "animation_name")},
+
+	{"godot_set_camera_target", "Configura posição, zoom e limites de uma Camera2D da cena.", schema(map[string][2]string{
+		"node_path":         {"string", "Caminho do nó Camera2D"},
+		"position":          {"array", "Posição [x, y]"},
+		"zoom":              {"number|array", "Zoom: número escalar ou [x, y]"},
+		"limit_left":        {"number", "Limite esquerdo (pixels)"},
+		"limit_top":         {"number", "Limite superior (pixels)"},
+		"limit_right":       {"number", "Limite direito (pixels)"},
+		"limit_bottom":      {"number", "Limite inferior (pixels)"},
+		"smoothing_enabled": {"boolean", "Ativa/desativa suavização de posição"},
+	}, "node_path")},
+
+	{"godot_docs_search", "Busca textual na documentação offline do Godot (godot_docs_html.zip). Complementa godot_class_reference para tutoriais, guias e conceitos.", schema(map[string][2]string{
+		"query":       {"string", "Termo de busca (ex: 'TileMap', 'move_and_slide', 'signals')"},
+		"max_results": {"number", "Número máximo de resultados (padrão: 5, máx: 20)"},
+	}, "query")},
 }
 
 // runMCPStdioServer processa requisições JSON-RPC do stdin e responde no stdout.

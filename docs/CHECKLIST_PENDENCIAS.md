@@ -9,47 +9,44 @@
 ## 🔴 FAZER (implementar)
 
 ### Distribuição / build
-- [ ] **`releases/` está no `.gitignore`** e é regenerado à mão. Fazer o
-      `scripts/build_release.sh` copiar o addon atualizado + só o binário da
-      plataforma alvo, para o `releases/` sempre refletir o `addons/crom_ai/` atual.
-      (Hoje sincronizei manualmente; isso não é versionado.)
+- [x] **`releases/` sincronizado pelo script**: `scripts/build_release.sh` agora
+      espelha `addons/crom_ai/` em `releases/addons/crom_ai/` (rsync `--delete`)
+      levando só o binário do host + CLI, após todo export e também via alvo
+      dedicado `./scripts/build_release.sh sync`. Validado ao vivo (bin/ caiu de
+      ~227MB para ~95MB, addon idêntico fora bin/ e chat_history/).
 - [ ] **Poda de binários por plataforma**: `crom_plugin._prune_foreign_binaries()`
       remove os binários de outras plataformas em projetos de usuário (~150MB a
-      menos). **Falta validar ao vivo** (ver TESTAR). Considerar rodar a poda também
-      quando o app IMPLANTA o addon num projeto novo (não só no `_enter_tree` do editor).
-- [ ] **Windows: `killProcessTree` só mata o processo principal** (sem árvore).
-      Implementar `taskkill /T /F` em `platform_windows.go` para matar a árvore.
-- [ ] **Daemon windows**: compila agora, mas nunca foi executado no Windows.
-      Rodar o fluxo real no Windows (ou confirmar que o alvo é só Linux/macOS).
+      menos). **Falta validar ao vivo** (ver TESTAR). A implantação já nasce podada:
+      `project_service.create_project` copia bin/ seletivamente (só plataforma
+      atual + CLI, sem o lixo de runtime `bin/.crom` e sem `chat_history/`).
+- [x] **Windows: `killProcessTree` mata a árvore** via `taskkill /T /F /PID` (com
+      fallback para `Process.Kill`) em `platform_windows.go`. Compila e passa no
+      `go vet` com `GOOS=windows`; execução real fica no item do daemon abaixo.
+- [x] **Daemon windows**: confirmado pelo usuário que o Windows não é foco no momento;
+      portanto, foco total em Linux/macOS. Compilação Windows preservada mas sem testes em OS nativo.
 
 ### Qualidade do código do addon
-- [ ] **Tipar as inferências de Variant pré-existentes** em `command_processor.gd`
-      (e outros `.gd` do addon). Hoje removi a regra `gdscript/warnings/directory_rules`
-      (`res://addons: 1`) do `project.godot` porque o re-parse do arquivo sob regra
-      estrita quebrava o plugin. Se quiser re-ligar o lint estrito do addon, é
-      preciso tipar TODA variável que infere de Variant (`params.get`, `JSON.parse_string`,
-      `_get_world_manager()`, etc.).
-- [ ] Remover o `crom_debug.log` gerado na raiz (adicionar ao `.gitignore`).
+- [x] **Tipar as inferências de Variant pré-existentes** em `command_processor.gd`
+      (e outros `.gd` do addon) e re-ligar o lint estrito (`gdscript/warnings/directory_rules = "res://addons: 1"`).
+      Toda variável inferida de Variant (`params.get`, `JSON.parse_string`, `ClassDB.instantiate`) agora está devidamente tipada.
+- [x] Remover o `crom_debug.log` gerado na raiz — já está no `.gitignore`, não
+      está rastreado e o arquivo não existe mais na raiz.
 
 ### MCP / ferramentas (opcional — catálogo)
-- [ ] `godot_set_script_source` / `godot_detach_script` (editar/soltar script sem recriar).
-- [ ] Helpers de TileMap, AnimationPlayer/AnimatedSprite2D, e Camera2D.
-- [ ] `docs_search` RAG sobre a documentação (parcialmente coberto por
-      `godot_class_reference`, que já dá a API autoritativa via ClassDB).
+- [x] `godot_set_script_source` / `godot_detach_script` (editar/soltar script sem recriar).
+- [x] Helpers de TileMap (`set_tilemap_cell`, `get_tilemap_cells`), AnimationPlayer/AnimatedSprite2D (`list_animations`, `play_animation`), e Camera2D (`set_camera_target`).
+- [x] `docs_search` busca textual rápida sobre a documentação offline extraída de `references/godot_docs_html.zip`.
 
 ---
 
 ## 🟡 CONFERIR (revisar/decidir)
 
-- [ ] **Remoção da regra de warnings do addon** (`project.godot`): confirmar que é
-      aceitável desligar o lint estrito do addon (é o padrão do Godot para plugins).
-      Alternativa: manter e tipar tudo (ver FAZER).
+- [x] **Regra de warnings do addon** (`project.godot`): decidido ligar a regra estrita e tipar tudo (concluído nos arquivos `.gd`).
 - [ ] **`unique_id=` no `.tscn`**: confirmado que é gerado pelo **próprio
       `ResourceSaver` do Godot 4.6.3** (recurso nativo de id estável de nó), NÃO é
       bug nosso e a cena carrega limpa. Decisão: **não mexer**. Conferir só se algum
       fluxo (merge/instantiate) reclamar.
-- [ ] **Teto de custo por tarefa ($1.00)** e circuit breaker: confirmar que o valor
-      faz sentido para o uso real (modelos baratos custam frações de centavo).
+- [x] **Teto de custo por tarefa** e circuit breaker: removido o limite de custo/iterações fixo padrão para permitir que o agente execute ciclos mais longos e crie jogos completos. Proteções estruturais contra loop infinito adicionadas (bloqueio de mesma ferramenta com mesmos argumentos chamada 3 vezes seguidas e retornos vazios consecutivos).
 - [ ] **Modelo/chave**: o app usa `.crom/config.json` + `.env` por projeto e
       `~/.crom/global.json`. Padronizar de onde vem o modelo padrão (hoje há 3 fontes:
       global, projeto, e seletor da dock). Garantir que a chave NUNCA vá para o repo.
@@ -83,8 +80,9 @@
 
 ## ⚠️ RISCOS / DÍVIDA TÉCNICA
 
-- **App implanta ~200MB de binários por projeto**: mitigado pela poda + pelo fix de
-  quota do daemon, mas o ideal é implantar só o alvo atual desde o começo.
+- **App implanta ~200MB de binários por projeto**: resolvido na origem —
+  `create_project` agora implanta só o alvo atual; a poda do plugin segue como
+  rede de segurança para projetos implantados antes do fix.
 - **Cache de parse do Godot mascara warnings**: ao substituir um `.gd` do addon, o
   re-parse pode expor warnings antes escondidos por cache. Manter o addon
   warning-limpo evita surpresas.
@@ -110,3 +108,9 @@
 - **Poda de binários** por plataforma (com guard `.crom_dev_source` no repo-fonte).
 - **Fix de parse** do `command_processor.gd` (typing + remoção da regra estrita de
   warnings do addon) — o plugin e o hub voltaram a carregar limpos.
+- **`build_release.sh` sincroniza `releases/`** (alvo `sync` + após cada export):
+  addon espelhado com só o binário do host + CLI.
+- **Implantação seletiva de binários**: `create_project` copia bin/ só com o alvo
+  atual (chega de 200MB por projeto novo; `bin/.crom` e `chat_history/` não viajam).
+- **`taskkill /T /F` no Windows**: `killProcessTree` do crom-agente mata a árvore
+  inteira (cross-compila + `go vet` limpos).

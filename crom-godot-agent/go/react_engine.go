@@ -9,17 +9,18 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 // ReActEngine executa o loop ReAct (Reasoning and Acting) conectando o modelo LLM ao Godot
 type ReActEngine struct {
-	Godot        *GodotClient
-	Provider     string // "ollama", "openrouter", "openai", "cromia"
-	BaseURL      string
-	APIKey       string
-	Model        string
-	Messages     []map[string]interface{}
-	RequireHITL  bool
+	Godot       *GodotClient
+	Provider    string // "ollama", "openrouter", "openai", "cromia"
+	BaseURL     string
+	APIKey      string
+	Model       string
+	Messages    []map[string]interface{}
+	RequireHITL bool
 }
 
 // NewReActEngine inicializa o motor de agente
@@ -217,7 +218,7 @@ func (r *ReActEngine) GetTools() []map[string]interface{} {
 			"function": map[string]interface{}{
 				"name":        "look_around",
 				"description": "[PLAY MODE] Inspeciona o local atual no jogo, listando entidades visíveis e saídas disponíveis.",
-				"parameters": map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+				"parameters":  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 			},
 		},
 		{
@@ -255,7 +256,7 @@ func (r *ReActEngine) GetTools() []map[string]interface{} {
 			"function": map[string]interface{}{
 				"name":        "check_inventory_and_status",
 				"description": "[PLAY MODE] Retorna o HP, status e lista de itens no inventário do jogador.",
-				"parameters": map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+				"parameters":  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 			},
 		},
 		{
@@ -271,19 +272,269 @@ func (r *ReActEngine) GetTools() []map[string]interface{} {
 				},
 			},
 		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "get_console_errors",
+				"description": "Retorna erros de execução (SCRIPT ERROR, Parse Error, etc.) recentes do console/logs do Godot.",
+				"parameters":  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "get_output",
+				"description": "Retorna as últimas linhas do output padrão do Godot (prints, logs, etc.).",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"lines": map[string]interface{}{"type": "number", "description": "Número de linhas a ler (padrão: 60)"},
+					},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "clear_output",
+				"description": "Limpa/reseta a leitura de logs para que get_console_errors/get_output só mostrem o que vier DEPOIS deste ponto.",
+				"parameters":  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "connect_signal",
+				"description": "Conecta um sinal de um nó a um método de outro nó, salvando a conexão na cena. USE ISTO sempre que criar um handler no padrão _on_<no>_<sinal> (ex.: ligar o 'timeout' de um Timer ao método _on_timer_timeout).",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"from_node": map[string]interface{}{"type": "string", "description": "Caminho do nó que emite o sinal ('.' para a raiz)"},
+						"signal":    map[string]interface{}{"type": "string", "description": "Nome do sinal (ex: timeout, pressed)"},
+						"to_node":   map[string]interface{}{"type": "string", "description": "Caminho do nó que recebe o sinal ('.' para a raiz)"},
+						"method":    map[string]interface{}{"type": "string", "description": "Nome do método a ser chamado (ex: _on_timer_timeout)"},
+					},
+					"required": []string{"signal", "method"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "create_scene",
+				"description": "Cria um arquivo de cena .tscn novo com um nó raiz do tipo indicado.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"scene_path": map[string]interface{}{"type": "string", "description": "Caminho res:// da cena (ex: res://games/snake/snake.tscn)"},
+						"root_type":  map[string]interface{}{"type": "string", "description": "Classe do nó raiz (padrão: Node2D)"},
+						"root_name":  map[string]interface{}{"type": "string", "description": "Nome do nó raiz (padrão: derivado do arquivo)"},
+					},
+					"required": []string{"scene_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "save_scene",
+				"description": "Salva a cena atualmente aberta no Editor Godot no disco.",
+				"parameters":  map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "open_scene",
+				"description": "Abre uma cena .tscn no Editor Godot para edição.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"scene_path": map[string]interface{}{"type": "string", "description": "Caminho res:// da cena"},
+					},
+					"required": []string{"scene_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "set_project_setting",
+				"description": "Define uma configuração no project.godot (ex: application/run/main_scene).",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"setting": map[string]interface{}{"type": "string", "description": "Caminho da configuração"},
+						"value":   map[string]interface{}{"description": "Novo valor"},
+					},
+					"required": []string{"setting", "value"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "add_input_action",
+				"description": "Cria uma ação de input no project.godot mapeada para teclas físicas.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"action_name": map[string]interface{}{"type": "string", "description": "Nome da ação (ex: mover_direita)"},
+						"keys":        map[string]interface{}{"type": "array", "description": "Teclas mapeadas (ex: [\"D\", \"Right\"])"},
+					},
+					"required": []string{"action_name", "keys"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "set_script_source",
+				"description": "Edita o código-fonte de um script GDScript existente sem recriar o nó. Use node_path ou script_path.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path":     map[string]interface{}{"type": "string", "description": "Caminho do nó cujo script será editado ('.' para raiz)"},
+						"script_path":   map[string]interface{}{"type": "string", "description": "Caminho res:// do script .gd"},
+						"gdscript_code": map[string]interface{}{"type": "string", "description": "Código completo novo"},
+					},
+					"required": []string{"gdscript_code"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "detach_script",
+				"description": "Remove o script de um nó sem excluir o arquivo do disco.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path": map[string]interface{}{"type": "string", "description": "Caminho do nó"},
+					},
+					"required": []string{"node_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "set_tilemap_cell",
+				"description": "Define uma célula em um TileMap ou TileMapLayer.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path":        map[string]interface{}{"type": "string", "description": "Caminho do nó TileMap/TileMapLayer"},
+						"coords":           map[string]interface{}{"type": "array", "description": "Coordenadas [x, y]"},
+						"source_id":        map[string]interface{}{"type": "number", "description": "ID da fonte no TileSet"},
+						"atlas_coords":     map[string]interface{}{"type": "array", "description": "Coordenadas no atlas [x, y]"},
+						"alternative_tile": map[string]interface{}{"type": "number", "description": "ID alternativo"},
+						"layer":            map[string]interface{}{"type": "number", "description": "Layer do TileMap legado"},
+					},
+					"required": []string{"node_path", "coords"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "get_tilemap_cells",
+				"description": "Retorna as coordenadas de células usadas de um TileMap ou TileMapLayer.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path": map[string]interface{}{"type": "string", "description": "Caminho do nó"},
+						"layer":     map[string]interface{}{"type": "number", "description": "Layer (legado)"},
+					},
+					"required": []string{"node_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "list_animations",
+				"description": "Lista animações de um AnimationPlayer ou AnimatedSprite2D.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path": map[string]interface{}{"type": "string", "description": "Caminho do nó"},
+					},
+					"required": []string{"node_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "play_animation",
+				"description": "Toca animação por nome em um AnimationPlayer ou AnimatedSprite2D.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path":      map[string]interface{}{"type": "string", "description": "Caminho do nó"},
+						"animation_name": map[string]interface{}{"type": "string", "description": "Nome da animação"},
+					},
+					"required": []string{"node_path", "animation_name"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "set_camera_target",
+				"description": "Configura zoom, posição e limites de uma Camera2D.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"node_path":         map[string]interface{}{"type": "string", "description": "Caminho da Camera2D"},
+						"position":          map[string]interface{}{"type": "array", "description": "Posição [x, y]"},
+						"zoom":              map[string]interface{}{"description": "Zoom escalar ou [x,y]"},
+						"limit_left":        map[string]interface{}{"type": "number"},
+						"limit_top":         map[string]interface{}{"type": "number"},
+						"limit_right":       map[string]interface{}{"type": "number"},
+						"limit_bottom":      map[string]interface{}{"type": "number"},
+						"smoothing_enabled": map[string]interface{}{"type": "boolean"},
+					},
+					"required": []string{"node_path"},
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]interface{}{
+				"name":        "docs_search",
+				"description": "Busca textual na documentação offline do Godot.",
+				"parameters": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"query":       map[string]interface{}{"type": "string", "description": "Termo de busca (ex: CharacterBody2D)"},
+						"max_results": map[string]interface{}{"type": "number"},
+					},
+					"required": []string{"query"},
+				},
+			},
+		},
 	}
 }
 
-// RunIteration envia o prompt do usuário para a LLM, executa ferramentas em loop até a resposta final
+// RunIteration envia o prompt do usuário para a LLM, executa ferramentas em loop até a resposta final.
+// Sem limite de iterações — o agente precisa criar jogos completos de ponta a ponta.
+// Proteções anti-loop (só loops reais):
+//   - Detecção de chamada repetida: mesma tool+args ≥3 vezes seguidas → aborta.
+//   - Guard contra iterações vazias (0 tool calls + content vazio) 2x seguidas → aborta.
 func (r *ReActEngine) RunIteration(userInput string) (string, error) {
 	r.Messages = append(r.Messages, map[string]interface{}{
 		"role":    "user",
 		"content": userInput,
 	})
 
-	maxIterations := 10
-	for iteration := 0; iteration < maxIterations; iteration++ {
-		log.Printf("[ReActEngine] Iteração %d - Solicitando resposta da LLM (%s)...", iteration+1, r.Model)
+	emptyCount := 0               // iterações sem tool calls E sem content
+	var lastToolKey string        // "tool:argsHash" da última chamada
+	consecutiveSameToolCalls := 0 // vezes seguidas que a mesma tool+args aparece
+
+	for {
+		log.Printf("[ReActEngine] Solicitando resposta da LLM (%s)...", r.Model)
 
 		payload := map[string]interface{}{
 			"model":    r.Model,
@@ -305,7 +556,7 @@ func (r *ReActEngine) RunIteration(userInput string) (string, error) {
 			req.Header.Set("Authorization", "Bearer "+r.APIKey)
 		}
 
-		client := &http.Client{}
+		client := &http.Client{Timeout: 120 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
 			return "", fmt.Errorf("erro ao conectar no endpoint LLM (%s): %v", r.BaseURL, err)
@@ -324,8 +575,8 @@ func (r *ReActEngine) RunIteration(userInput string) (string, error) {
 		var completion struct {
 			Choices []struct {
 				Message struct {
-					Role       string `json:"role"`
-					Content    string `json:"content"`
+					Role      string `json:"role"`
+					Content   string `json:"content"`
 					ToolCalls []struct {
 						ID       string `json:"id"`
 						Type     string `json:"type"`
@@ -362,13 +613,37 @@ func (r *ReActEngine) RunIteration(userInput string) (string, error) {
 
 		// Se a LLM não chamou ferramentas, ou retornou apenas texto final, terminamos este turno ReAct!
 		if len(msg.ToolCalls) == 0 {
+			if msg.Content == "" {
+				emptyCount++
+				if emptyCount >= 2 {
+					return "⚠️ Loop detectado: a LLM retornou respostas vazias consecutivas. Encerrando.", nil
+				}
+				continue
+			}
 			return msg.Content, nil
 		}
+
+		// Reset empty counter quando há tool calls
+		emptyCount = 0
 
 		// Processa todas as chamadas de ferramentas de forma sequencial via GodotClient
 		for _, toolCall := range msg.ToolCalls {
 			fnName := toolCall.Function.Name
 			argsJSON := toolCall.Function.Arguments
+
+			// Guard: detecção de chamada repetida (mesma tool + mesmos args)
+			toolKey := fnName + ":" + argsJSON
+			if toolKey == lastToolKey {
+				consecutiveSameToolCalls++
+				if consecutiveSameToolCalls >= 3 {
+					errMsg := fmt.Sprintf("⚠️ Loop detectado: a ferramenta '%s' foi chamada %d vezes seguidas com os mesmos argumentos. Encerrando para evitar loop infinito.", fnName, consecutiveSameToolCalls)
+					log.Printf("[ReActEngine] %s", errMsg)
+					return errMsg, nil
+				}
+			} else {
+				lastToolKey = toolKey
+				consecutiveSameToolCalls = 1
+			}
 
 			log.Printf("[ReActEngine -> Executando Tool] %s com args: %s", fnName, argsJSON)
 
@@ -408,6 +683,4 @@ func (r *ReActEngine) RunIteration(userInput string) (string, error) {
 			})
 		}
 	}
-
-	return "Limite máximo de iterações ReAct atingido.", nil
 }

@@ -88,11 +88,11 @@ func _build_layout() -> void:
 	editor_group.add_child(canvas)
 	
 	# Instanciar páginas
-	var home_page = _HomePage.new()
-	var projects_page = _ProjectsPage.new()
-	var playtest_page = _PlaytestPage.new()
-	var settings_page = _SettingsPage.new()
-	var benchmark_page = _BenchmarkPage.new()
+	var home_page: Control = _HomePage.new()
+	var projects_page: Control = _ProjectsPage.new()
+	var playtest_page: Control = _PlaytestPage.new()
+	var settings_page: Control = _SettingsPage.new()
+	var benchmark_page: Control = _BenchmarkPage.new()
 	
 	home_page.navigate_requested.connect(_navigate_to)
 	home_page.open_project_requested.connect(func(path):
@@ -163,9 +163,9 @@ func _init_services() -> void:
 			_log("[color=#a6e3a1]Telemetria de %s: %.1f FPS (Peak: %.1f MB)[/color]" % [g_id, rep["fps"]["average"], rep["memory_mb"]["peak"]])
 		)
 	
-	var ProcClass = load("res://addons/crom_ai/command_processor.gd")
+	var ProcClass: Variant = load("res://addons/crom_ai/command_processor.gd")
 	if ProcClass:
-		var proc = ProcClass.new(null)
+		var proc: Variant = ProcClass.new(null)
 		add_child(proc)
 		var EngineClass = load("res://addons/crom_ai/native_react_engine.gd")
 		if EngineClass:
@@ -180,7 +180,7 @@ func _init_services() -> void:
 	
 	_playtest_svc = _PlaytestService.new()
 	add_child(_playtest_svc)
-	var pt_page = _pages.get("playtest")
+	var pt_page: Variant = _pages.get("playtest")
 	if pt_page and _engine:
 		_playtest_svc.setup(_engine, pt_page.get_playtest_viewport())
 		_playtest_svc.playtest_finished.connect(func(game_id, report):
@@ -189,25 +189,25 @@ func _init_services() -> void:
 		)
 
 func _on_agent_inspect() -> void:
-	var pt = _pages.get("playtest")
+	var pt: Variant = _pages.get("playtest")
 	if not _engine or not pt or pt.get_active_game_info().is_empty():
 		_log("[color=#f38ba8]Selecione um jogo na aba Playtest primeiro.[/color]")
 		return
-	var info = pt.get_active_game_info()
+	var info: Dictionary = pt.get_active_game_info()
 	_log("Agente inspecionando %s..." % info["name"])
 	_engine.send_user_prompt("Chame capture_screenshot e analise a responsividade do jogo '%s'." % info["name"])
 
 func _on_agent_refactor() -> void:
-	var pt = _pages.get("playtest")
+	var pt: Variant = _pages.get("playtest")
 	if not _engine or not pt or pt.get_active_game_info().is_empty():
 		_log("[color=#f38ba8]Selecione um jogo na aba Playtest primeiro.[/color]")
 		return
-	var info = pt.get_active_game_info()
+	var info: Dictionary = pt.get_active_game_info()
 	_log("Agente refatorando %s..." % info["name"])
 	_engine.send_user_prompt("Otimize o script do jogo '%s' usando modify_project_file." % info["name"])
 
 func _on_agent_playtest() -> void:
-	var pt = _pages.get("playtest")
+	var pt: Variant = _pages.get("playtest")
 	if not _engine or not pt or pt.get_active_game_info().is_empty():
 		_log("[color=#f38ba8]Selecione um jogo na aba Playtest primeiro.[/color]")
 		return
@@ -215,7 +215,7 @@ func _on_agent_playtest() -> void:
 	_playtest_svc.start_playtest(pt.get_active_game_info())
 
 func _on_benchmark_quick() -> void:
-	var pt = _pages.get("playtest")
+	var pt: Variant = _pages.get("playtest")
 	if not _monitor or not pt or pt.get_active_game_info().is_empty():
 		_log("[color=#f38ba8]Selecione um jogo na aba Playtest primeiro.[/color]")
 		return

@@ -82,17 +82,17 @@ static func setup_benchmark_directories() -> void:
 	
 	# Criar pastas para cada jogo listado no registry
 	for g in _games:
-		var sub_path = "res://games/" + g["id"]
+		var sub_path: String = "res://games/" + g["id"]
 		if not DirAccess.dir_exists_absolute(sub_path):
 			DirAccess.make_dir_recursive_absolute(sub_path)
 			
 		# Criar o README.md específico com as instruções do jogo
-		var file_path = sub_path + "/README.md"
+		var file_path: String = sub_path + "/README.md"
 		if not FileAccess.file_exists(file_path):
 			var f_game := FileAccess.open(file_path, FileAccess.WRITE)
 			if f_game:
-				var desc = instructions.get(g["id"], "Crie o jogo " + g["name"] + ".")
-				var content = "# CromAI Minijogo - " + g["name"] + "\n\n## Instruções para o Agente:\n" + desc + "\n\n## Arquivos Esperados:\n- Script principal: `res://games/" + g["id"] + "/" + g["id"] + ".gd`\n- Cena principal: `res://games/" + g["id"] + "/" + g["id"] + ".tscn`\n"
+				var desc: Variant = instructions.get(g["id"], "Crie o jogo " + g["name"] + ".")
+				var content: String = "# CromAI Minijogo - " + g["name"] + "\n\n## Instruções para o Agente:\n" + desc + "\n\n## Arquivos Esperados:\n- Script principal: `res://games/" + g["id"] + "/" + g["id"] + ".gd`\n- Cena principal: `res://games/" + g["id"] + "/" + g["id"] + ".tscn`\n"
 				f_game.store_string(content)
 				f_game.close()
 				

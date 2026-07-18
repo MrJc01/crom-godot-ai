@@ -8,8 +8,8 @@ extends EditorPlugin
 var websocket_server: Node = null
 var command_processor: Node = null
 var chat_dock: Control = null
-var _ctx_menu_files = null
-var _ctx_menu_nodes = null
+var _ctx_menu_files: Variant = null
+var _ctx_menu_nodes: Variant = null
 
 func _enter_tree() -> void:
 	print("=========================================================")
@@ -28,7 +28,7 @@ func _enter_tree() -> void:
 		websocket_server = ServerClass.new(command_processor, 8080)
 		websocket_server.name = "WebSocketServer"
 		add_child(websocket_server)
-		var started = websocket_server.start_server()
+		var started: bool = websocket_server.start_server()
 		if started:
 			print("[CromAI Bridge] Sistema pronto! Conecte seu Servidor MCP/IA na porta 8080.")
 		else:
