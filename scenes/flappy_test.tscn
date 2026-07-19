@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/bird_flappy.gd" id="1_fco74"]
+[ext_resource type="Script" path="res://scripts/pipe_obstacle.gd" id="2_h81ek"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_03s6h"]
+size = Vector2(30, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bagpp"]
+size = Vector2(60, 200)
+
+[node name="FlappyTest" type="Node2D" unique_id=885363401]
+
+[node name="Bird" type="CharacterBody2D" parent="." unique_id=1686967566]
+collision_mask = 2
+script = ExtResource("1_fco74")
+
+[node name="Visual" type="ColorRect" parent="Bird" unique_id=1404601370]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bird" unique_id=57685539]
+shape = SubResource("RectangleShape2D_03s6h")
+
+[node name="PipeTop" type="Area2D" parent="." unique_id=1830066342]
+collision_layer = 2
+script = ExtResource("2_h81ek")
+
+[node name="Visual" type="ColorRect" parent="PipeTop" unique_id=38667545]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PipeTop" unique_id=1222109043]
+shape = SubResource("RectangleShape2D_bagpp")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=226238454]
+
+[node name="Title" type="Label" parent="HUD" unique_id=862507726]

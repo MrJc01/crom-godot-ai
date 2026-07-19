@@ -867,7 +867,7 @@ func _on_connection_changed(connected: bool) -> void:
 	_status_dot.color = ThemeC.ACCENT_GREEN if connected else ThemeC.ACCENT_RED
 	_status_label.text = "daemon conectado" if connected else "daemon offline"
 	if connected:
-		_append_entry("system", "Conectado ao daemon do crom-agente. O agente enxerga e edita este projeto.")
+		_append_entry("system", "💡 Crom Agente Conectado!\nEscreva sua instrução na caixa abaixo (ex: 'Crie um jogo 2D de nave') ou use comandos slash (/):\n  • /jogar : Testa e auto-corrige a cena ativa\n  • /inspecionar : Tira um screenshot e analisa a cena\n  • /arvore : Mostra a hierarquia de nós da cena\n  • /corrigir : Diagnostica e corrige erros de script")
 
 func _on_agent_status(status: String) -> void:
 	match status:

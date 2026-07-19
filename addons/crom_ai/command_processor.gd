@@ -479,14 +479,7 @@ func _add_node(params: Dictionary) -> Dictionary:
 		
 	new_node.name = node_name
 	
-	var scene_root: Node = null
-	if editor_plugin and editor_plugin.get_editor_interface():
-		scene_root = editor_plugin.get_editor_interface().get_edited_scene_root()
-	else:
-		var tree = Engine.get_main_loop() as SceneTree
-		if tree:
-			scene_root = tree.current_scene if tree.current_scene else tree.root
-			
+	var scene_root: Node = _get_edited_scene_root()
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta para adicionar nó." }
 		
@@ -636,13 +629,18 @@ func _coerce_value(target: Object, property_name: String, value: Variant) -> Var
 		return Color.from_string(value, Color.WHITE)
 	return value
 
+var _working_root: Node = null
+var _working_scene_path: String = ""
+
 func _get_edited_scene_root() -> Node:
 	if editor_plugin and editor_plugin.get_editor_interface():
-		return editor_plugin.get_editor_interface().get_edited_scene_root()
+		var r = editor_plugin.get_editor_interface().get_edited_scene_root()
+		if r:
+			return r
 	var tree = Engine.get_main_loop() as SceneTree
-	if tree:
+	if tree and tree.current_scene:
 		return tree.current_scene
-	return null
+	return _working_root
 
 # Caminho de um nó RELATIVO à raiz da cena editada ("." p/ raiz, "Player/Col").
 # É o formato que todas as ferramentas aceitam; nunca devolver get_path() absoluto.
@@ -786,11 +784,12 @@ func _create_scene(params: Dictionary) -> Dictionary:
 
 	var root: Variant = ClassDB.instantiate(root_type)
 	root.name = root_name if root_name != "" else "Root"
+	_working_root = root
+	_working_scene_path = scene_path
 
 	var packed := PackedScene.new()
 	var pack_err := packed.pack(root)
 	if pack_err != OK:
-		root.free()
 		return { "status": "error", "message": "Falha ao empacotar a cena (erro %d)." % pack_err }
 
 	var parent_dir := scene_path.get_base_dir()
@@ -798,7 +797,6 @@ func _create_scene(params: Dictionary) -> Dictionary:
 		DirAccess.make_dir_recursive_absolute(parent_dir)
 
 	var save_err := ResourceSaver.save(packed, scene_path)
-	root.free()
 	if save_err != OK:
 		return { "status": "error", "message": "Falha ao salvar a cena em '%s' (erro %d)." % [scene_path, save_err] }
 	_refresh_editor_filesystem()
@@ -846,7 +844,21 @@ func _save_scene() -> Dictionary:
 		var root := _get_edited_scene_root()
 		var path := root.scene_file_path if root else ""
 		return { "status": "success", "message": "Cena salva com sucesso%s." % (" em '%s'" % path if path != "" else "") }
-	return { "status": "error", "message": "Salvar cena só está disponível dentro do Editor." }
+	elif _working_root and _working_scene_path != "":
+		_set_owner_rec(_working_root, _working_root)
+		var packed := PackedScene.new()
+		var pack_err := packed.pack(_working_root)
+		if pack_err == OK:
+			var save_err := ResourceSaver.save(packed, _working_scene_path)
+			if save_err == OK:
+				_refresh_editor_filesystem()
+				return { "status": "success", "message": "Cena em memória salva em '%s'." % _working_scene_path }
+	return { "status": "error", "message": "Salvar cena indisponível." }
+
+func _set_owner_rec(node: Node, root: Node) -> void:
+	for c in node.get_children():
+		c.owner = root
+		_set_owner_rec(c, root)
 
 func _open_scene(params: Dictionary) -> Dictionary:
 	var scene_path: String = str(params.get("scene_path", ""))
@@ -894,7 +906,7 @@ func _add_input_action(params: Dictionary) -> Dictionary:
 func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	var node_path: String = str(params.get("node_path", "."))
 	var script_path: String = str(params.get("script_path", "res://scripts/generated_script.gd"))
-	var gdscript_code: String = str(params.get("gdscript_code", params.get("code", "")))
+	var gdscript_code: String = str(params.get("gdscript_code", params.get("script_content", params.get("code", ""))))
 	
 	if gdscript_code == "":
 		return { "status": "error", "message": "O código 'gdscript_code' não pode ser vazio." }
@@ -922,9 +934,7 @@ func _create_and_attach_script(params: Dictionary) -> Dictionary:
 	if not loaded_script:
 		return { "status": "success", "message": "Script salvo com sucesso em '%s' (Aviso: falha temporária ao carregar o script na engine, provavelmente devido a preloads de recursos ou cenas ainda não criados. Prossiga criando as dependências faltantes)." % script_path }
 		
-	var scene_root: Node = null
-	if editor_plugin and editor_plugin.get_editor_interface():
-		scene_root = editor_plugin.get_editor_interface().get_edited_scene_root()
+	var scene_root: Node = _get_edited_scene_root()
 		
 	var has_node_path: bool = params.has("node_path")
 	if has_node_path:
@@ -1712,23 +1722,30 @@ func _setup_physics_body(params: Dictionary) -> Dictionary:
 	var scene_root := _get_edited_scene_root()
 	if not scene_root:
 		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
-	var body_type := str(params.get("body_type", "CharacterBody2D"))
-	if not ClassDB.class_exists(body_type) or not ClassDB.is_parent_class(body_type, "CollisionObject2D"):
-		return { "status": "error", "message": "body_type inválido: '%s' (use CharacterBody2D, RigidBody2D, StaticBody2D, Area2D)." % body_type }
-	var parent_path := str(params.get("parent_path", "."))
-	var parent: Node = scene_root if parent_path in [".", ""] else scene_root.get_node_or_null(parent_path)
-	if not parent:
-		return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
-	var body: Node = ClassDB.instantiate(body_type)
-	body.name = str(params.get("node_name", body_type))
-	parent.add_child(body)
-	body.owner = scene_root
+	var target_path := str(params.get("node_path", params.get("parent_path", ".")))
+	var body: Node = _resolve_node(scene_root, target_path)
+	if not body:
+		var body_type := str(params.get("body_type", "CharacterBody2D"))
+		if not ClassDB.class_exists(body_type) or not ClassDB.is_parent_class(body_type, "CollisionObject2D"):
+			return { "status": "error", "message": "body_type inválido: '%s'." % body_type }
+		body = ClassDB.instantiate(body_type)
+		body.name = str(params.get("node_name", body_type))
+		scene_root.add_child(body)
+		body.owner = scene_root
 	if params.has("position"):
 		body.set("position", _coerce_value(body, "position", params.get("position")))
-	var col := CollisionShape2D.new()
-	col.name = "CollisionShape2D"
-	body.add_child(col)
-	col.owner = scene_root
+	if params.has("collision_layer"):
+		body.set("collision_layer", int(params.get("collision_layer")))
+	if params.has("collision_mask"):
+		body.set("collision_mask", int(params.get("collision_mask")))
+
+	var col: CollisionShape2D = body.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if not col:
+		col = CollisionShape2D.new()
+		col.name = "CollisionShape2D"
+		body.add_child(col)
+		col.owner = scene_root
+
 	var shape_type := str(params.get("shape_type", "RectangleShape2D"))
 	if ClassDB.class_exists(shape_type) and ClassDB.is_parent_class(shape_type, "Shape2D"):
 		var shape: Shape2D = ClassDB.instantiate(shape_type)
@@ -1738,7 +1755,7 @@ func _setup_physics_body(params: Dictionary) -> Dictionary:
 			shape.radius = float(params.get("radius"))
 		col.shape = shape
 	_mark_scene_modified()
-	return { "status": "success", "body": _rel_path(body), "collision_shape": _rel_path(col), "message": "%s '%s' com CollisionShape2D criado." % [body_type, body.name] }
+	return { "status": "success", "body": _rel_path(body), "collision_shape": _rel_path(col), "message": "PhysicsBody '%s' configurado com CollisionShape2D." % body.name }
 
 # Define collision_layer / collision_mask de um corpo físico.
 func _set_physics_layers(params: Dictionary) -> Dictionary:
@@ -1950,8 +1967,8 @@ func _tilemap_get_info(params: Dictionary) -> Dictionary:
 			info["sources_count"] = ts.get_source_count()
 		var layers_info: Array = []
 		for i in range(target.get_layers_count()):
-			var lname := target.get_layer_name(i)
-			var used := target.get_used_cells(i).size()
+			var lname: String = target.get_layer_name(i)
+			var used: int = target.get_used_cells(i).size()
 			layers_info.append({ "index": i, "name": lname if lname != "" else "Layer %d" % i, "used_cells": used, "enabled": target.is_layer_enabled(i) })
 		info["layers"] = layers_info
 		info["layer_count"] = target.get_layers_count()
@@ -2765,7 +2782,7 @@ func _set_particle_color_gradient(params: Dictionary) -> Dictionary:
 		for i: int in range(colors_raw.size()):
 			var c: Variant = colors_raw[i]
 			if c is Array and c.size() >= 3:
-				var offset := float(i) / max(1.0, float(colors_raw.size() - 1))
+				var offset: float = float(i) / max(1.0, float(colors_raw.size() - 1))
 				if i == 0:
 					gradient.set_color(0, Color(float(c[0]), float(c[1]), float(c[2]), float(c[3]) if c.size() > 3 else 1.0))
 				else:

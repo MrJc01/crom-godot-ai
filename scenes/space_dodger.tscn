@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_71u3h"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1mei7"]
+size = Vector2(28, 28)
+
+[node name="SpaceDodger" type="Node2D" unique_id=704017161]
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=242533688]
+
+[node name="Visual" type="ColorRect" parent="Player" unique_id=215397213]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1599565078]
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=652789453]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=2009958904]
+shape = SubResource("RectangleShape2D_71u3h")
+
+[node name="Enemy" type="Area2D" parent="." unique_id=2117341059]
+
+[node name="Visual" type="ColorRect" parent="Enemy" unique_id=1231780538]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy" unique_id=99026919]
+
+[node name="Area2D" type="Area2D" parent="." unique_id=209631015]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=2133740147]
+shape = SubResource("RectangleShape2D_1mei7")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=37959443]
+
+[node name="TitleLabel" type="Label" parent="HUD" unique_id=1335002573]

@@ -1,32 +1,34 @@
-# Godot 4 cache, import and settings
+# Godot 4 cache, import e configurações
 .godot/
 *.translation
 
-# Build outputs
+# Binários e artefatos de build
 release/
 releases/
+*.exe
+*.dll
+*.so
+*.dylib
 
-# Telemetry and benchmark logs
+# Logs de telemetria, benchmark e debug
 benchmark_logs/
+crom_debug.log
 
-# Offline Docs downloaded files and extracted HTML
+# Documentação offline baixada/extraída
 docs/*.zip
 docs/html/
 
-# Generated games folder (procedural AI tests)
+# Jogos gerados proceduralmente e testes temporários
 games/
+.crom_editor_script_tmp.gd
 
-# Crom Agente: config local do workspace, segredos e histórico de chat
+# Configuração local do workspace Crom Agente, segredos e histórico
 .crom/
 addons/crom_ai/chat_history/
-
-# Segredos e chaves (nunca versionar)
 *.env
 .env
 
-# Binários Go compilados localmente (o daemon vem via release em addons/crom_ai/bin/)
+# Binários locais do daemon Go
 crom-godot-agent/go/crom-godot-agent
 external/godot
 .claude
-# Log de debug do WebSocket server (runtime)
-crom_debug.log
