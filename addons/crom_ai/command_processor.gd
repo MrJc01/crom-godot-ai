@@ -185,62 +185,10 @@ func process_command(command_json: String) -> Dictionary:
 		"set_animation_keyframe":
 			return _set_animation_keyframe(params)
 
-		# ======================================================================
-		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
-		# ======================================================================
-		"create_location":
-			var wm = _get_world_manager()
-			return wm.create_location(str(params.get("location_id", "")), str(params.get("name", "")), str(params.get("description", "")))
-		"create_entity":
-			var wm = _get_world_manager()
-			return wm.create_entity(str(params.get("entity_id", "")), str(params.get("location_id", "")), str(params.get("type", "item")), params.get("properties", {}))
-		"define_rule":
-			var wm = _get_world_manager()
-			return wm.define_rule(str(params.get("trigger_action", "")), str(params.get("target_entity_id", "")), params.get("conditions", {}), params.get("results", {}))
-		"link_locations":
-			var wm = _get_world_manager()
-			return wm.link_locations(str(params.get("location_a", "")), str(params.get("location_b", "")), str(params.get("direction", "")), bool(params.get("bidirectional", true)))
-			
-		# ======================================================================
-		# 3. FERRAMENTAS DE JOGADOR (PLAY MODE)
-		# ======================================================================
-		"look_around":
-			return _get_world_manager().look_around()
-		"move":
-			return _get_world_manager().move(str(params.get("direction", params.get("target", ""))))
-		"interact":
-			return _get_world_manager().interact(str(params.get("action", "examinar")), str(params.get("target_id", "")), str(params.get("with_item_id", "")))
-		"check_inventory_and_status":
-			return _get_world_manager().check_inventory_and_status()
-			
-		# ======================================================================
-		# 4. SISTEMA E CONTROLE
-		# ======================================================================
-		"switch_mode":
-			return _get_world_manager().switch_mode(str(params.get("mode", "build")))
-		"get_world_state":
-			return _get_world_manager().get_world_state(str(params.get("query", "")))
-		"reset_world":
-			return _get_world_manager().reset_world()
 		"ping":
 			return { "status": "success", "message": "Pong! CromAI Godot Bridge ativo." }
 		_:
 			return { "status": "error", "message": "Ação desconhecida: '%s'." % action }
-
-func _get_world_manager() -> Node:
-	if Engine.has_singleton("CromWorldManager"):
-		return Engine.get_singleton("CromWorldManager")
-	var tree = Engine.get_main_loop() as SceneTree
-	if tree and tree.root.has_node("CromWorldManager"):
-		return tree.root.get_node("CromWorldManager")
-	var script = load("res://addons/crom_ai/world_state_manager.gd")
-	if script:
-		var instance = script.new()
-		instance.name = "CromWorldManager"
-		if tree and tree.root:
-			tree.root.add_child(instance)
-		return instance
-	return self
 
 func _resolve_node(scene_root: Node, path: String) -> Node:
 	if not scene_root:
@@ -1933,8 +1881,9 @@ func _docs_ensure_extracted() -> String:
 	var marker := cache_dir.path_join(".extracted")
 	if FileAccess.file_exists(marker):
 		return cache_dir
-	# Extrai o zip da documentação
-	var zip_path := "res://addons/crom_ai/references/godot_docs_html.zip"
+	# Extrai o zip da documentação (path relativo ao próprio addon — portável).
+	var script_res: Script = get_script()
+	var zip_path: String = script_res.resource_path.get_base_dir() + "/references/godot_docs_html.zip"
 	var global_zip := ProjectSettings.globalize_path(zip_path)
 	if not FileAccess.file_exists(global_zip):
 		return ""
@@ -1967,7 +1916,7 @@ func _docs_search(params: Dictionary) -> Dictionary:
 
 	var cache_dir := _docs_ensure_extracted()
 	if cache_dir == "":
-		return { "status": "error", "message": "Documentação offline não encontrada em res://addons/crom_ai/references/godot_docs_html.zip." }
+		return { "status": "error", "message": "Documentação offline não encontrada (references/godot_docs_html.zip no addon)." }
 
 	# Busca nos HTMLs extraídos (substring case-insensitive)
 	var dir := DirAccess.open(cache_dir)
