@@ -114,7 +114,66 @@ func _handle(msg: String) -> Dictionary:
 			if btn.has_signal("pressed"):
 				btn.emit_signal("pressed")
 			return { "status": "success", "message": "Botão '%s' acionado." % text }
+		"execute_script":
+			var code := str(params.get("code", ""))
+			var expression := Expression.new()
+			var err := expression.parse(code)
+			if err != OK:
+				return { "status": "error", "message": "Erro de parse na expressão GDScript em runtime: %s" % expression.get_error_text() }
+			var res: Variant = expression.execute([], scene)
+			if expression.has_execute_failed():
+				return { "status": "error", "message": "Falha ao executar expressão GDScript em runtime." }
+			return { "status": "success", "result": var_to_str(res) }
+		"find_by_script":
+			var script_path := str(params.get("script_path", ""))
+			var results: Array = []
+			if scene:
+				_find_by_script_rec(scene, scene, script_path, results)
+			return { "status": "success", "script": script_path, "count": results.size(), "nodes": results }
+		"batch_get_properties":
+			var paths: Array = params.get("node_paths", []) if params.get("node_paths") is Array else []
+			var props: Array = params.get("properties", []) if params.get("properties") is Array else []
+			var res: Dictionary = {}
+			for p in paths:
+				var n := _resolve_rt(str(p))
+				if n:
+					var item: Dictionary = {}
+					for pr in props:
+						var prs := str(pr)
+						if prs in n:
+							item[prs] = var_to_str(n.get(prs))
+					res[str(p)] = item
+			return { "status": "success", "results": res }
+		"find_nearby":
+			var pos_raw: Variant = params.get("position", [0, 0])
+			var radius := float(params.get("radius", 100.0))
+			var results: Array = []
+			if scene and pos_raw is Array and pos_raw.size() >= 2:
+				var target_pos := Vector2(float(pos_raw[0]), float(pos_raw[1]))
+				_find_nearby_rec(scene, scene, target_pos, radius, results)
+			return { "status": "success", "count": results.size(), "nodes": results }
+		"navigate_to":
+			var agent_path := str(params.get("agent_path", ""))
+			var agent := _resolve_rt(agent_path)
+			var target_raw: Variant = params.get("target", [0, 0])
+			if agent and "target_position" in agent and target_raw is Array and target_raw.size() >= 2:
+				agent.set("target_position", Vector2(float(target_raw[0]), float(target_raw[1])))
+				return { "status": "success", "message": "Target position definido no NavigationAgent." }
+			return { "status": "error", "message": "Nó agência ou posição alvo inválida." }
+		"move_to":
+			var np := str(params.get("node_path", ""))
+			var n := _resolve_rt(np)
+			var target_raw: Variant = params.get("target", [0, 0])
+			if n and target_raw is Array and target_raw.size() >= 2:
+				if "position" in n:
+					if n.position is Vector2:
+						n.position = Vector2(float(target_raw[0]), float(target_raw[1]))
+					elif n.position is Vector3 and target_raw.size() >= 3:
+						n.position = Vector3(float(target_raw[0]), float(target_raw[1]), float(target_raw[2]))
+					return { "status": "success", "message": "Nó '%s' movido." % np }
+			return { "status": "error", "message": "Falha ao mover nó em runtime." }
 	return { "status": "error", "message": "Ação de runtime desconhecida: '%s'." % action }
+
 
 func _resolve_rt(np: String) -> Node:
 	var scene := get_tree().current_scene
@@ -168,3 +227,18 @@ func _serialize(node: Node, depth: int) -> Dictionary:
 	if "visible" in node:
 		d["visible"] = node.visible
 	return d
+
+func _find_by_script_rec(node: Node, scene: Node, script_path: String, out: Array) -> void:
+	var s: Script = node.get_script()
+	if s and s.resource_path == script_path:
+		out.append({ "name": String(node.name), "type": node.get_class(), "path": str(scene.get_path_to(node)) })
+	for c in node.get_children():
+		_find_by_script_rec(c, scene, script_path, out)
+
+func _find_nearby_rec(node: Node, scene: Node, target_pos: Vector2, radius: float, out: Array) -> void:
+	if "position" in node and node.position is Vector2:
+		if (node.position as Vector2).distance_to(target_pos) <= radius:
+			out.append({ "name": String(node.name), "type": node.get_class(), "path": str(scene.get_path_to(node)), "distance": (node.position as Vector2).distance_to(target_pos) })
+	for c in node.get_children():
+		_find_nearby_rec(c, scene, target_pos, radius, out)
+

@@ -185,6 +185,224 @@ func process_command(command_json: String) -> Dictionary:
 		"set_animation_keyframe":
 			return _set_animation_keyframe(params)
 
+		# ======================================================================
+		# 1d. BLOCO 5 — TileMap/Input/Editor/Animation/Physics (paridade pro)
+		# ======================================================================
+		"tilemap_fill_rect":
+			return _tilemap_fill_rect(params)
+		"tilemap_clear":
+			return _tilemap_clear(params)
+		"tilemap_get_info":
+			return _tilemap_get_info(params)
+		"simulate_mouse_click":
+			return _simulate_mouse_click(params)
+		"simulate_mouse_move":
+			return _simulate_mouse_move(params)
+		"simulate_sequence":
+			return _simulate_sequence(params)
+		"execute_editor_script":
+			return _execute_editor_script(params)
+		"reload_plugin":
+			return _reload_plugin(params)
+		"reload_project":
+			return _reload_project()
+		"remove_animation":
+			return _remove_animation(params)
+		"get_collision_info":
+			return _get_collision_info(params)
+
+		# ======================================================================
+		# 1e. BLOCOS 6–16 — Todas as ferramentas restantes (paridade pro)
+		# ======================================================================
+
+		# --- Bloco 6: Audio ---
+		"add_audio_player":
+			return _add_audio_player(params)
+		"add_audio_bus":
+			return _add_audio_bus(params)
+		"add_audio_bus_effect":
+			return _add_audio_bus_effect(params)
+		"set_audio_bus":
+			return _set_audio_bus(params)
+		"get_audio_bus_layout":
+			return _get_audio_bus_layout(params)
+		"get_audio_info":
+			return _get_audio_info(params)
+
+		# --- Bloco 7: Theme & UI ---
+		"create_theme":
+			return _create_theme(params)
+		"set_theme_color":
+			return _set_theme_color(params)
+		"set_theme_constant":
+			return _set_theme_constant(params)
+		"set_theme_font_size":
+			return _set_theme_font_size(params)
+		"set_theme_stylebox":
+			return _set_theme_stylebox(params)
+		"get_theme_info":
+			return _get_theme_info(params)
+
+		# --- Bloco 8: Resource/Project ---
+		"edit_resource":
+			return _edit_resource(params)
+		"get_resource_preview":
+			return _get_resource_preview(params)
+		"add_autoload":
+			return _add_autoload(params)
+		"remove_autoload":
+			return _remove_autoload(params)
+		"uid_to_project_path":
+			return _uid_to_project_path(params)
+		"project_path_to_uid":
+			return _project_path_to_uid(params)
+		"list_scripts":
+			return _list_scripts(params)
+		"search_in_files":
+			return _search_in_files(params)
+
+		# --- Bloco 9: Node/Selection ---
+		"select_nodes":
+			return _select_nodes(params)
+		"clear_editor_selection":
+			return _clear_editor_selection()
+		"set_anchor_preset":
+			return _set_anchor_preset(params)
+
+		# --- Bloco 10: Runtime avançado ---
+		"execute_game_script":
+			return _execute_game_script(params)
+		"start_recording":
+			return _start_recording(params)
+		"stop_recording":
+			return _stop_recording(params)
+		"replay_recording":
+			return _replay_recording(params)
+		"find_nodes_by_script":
+			return _query_runtime("find_by_script", params)
+		"get_autoload":
+			return _get_autoload(params)
+		"batch_get_properties":
+			return _query_runtime("batch_get_properties", params)
+		"find_nearby_nodes":
+			return _query_runtime("find_nearby", params)
+		"navigate_to":
+			return _query_runtime("navigate_to", params)
+		"move_to":
+			return _query_runtime("move_to", params)
+
+		# --- Bloco 11: Testing/QA ---
+		"compare_screenshots":
+			return _compare_screenshots(params)
+		"run_stress_test":
+			return _run_stress_test(params)
+		"get_test_report":
+			return _get_test_report(params)
+
+		# --- Bloco 12: Particle + Navigation ---
+		"create_particles":
+			return _create_particles(params)
+		"set_particle_material":
+			return _set_particle_material(params)
+		"set_particle_color_gradient":
+			return _set_particle_color_gradient(params)
+		"apply_particle_preset":
+			return _apply_particle_preset(params)
+		"get_particle_info":
+			return _get_particle_info(params)
+		"setup_navigation_region":
+			return _setup_navigation_region(params)
+		"setup_navigation_agent":
+			return _setup_navigation_agent(params)
+		"bake_navigation_mesh":
+			return _bake_navigation_mesh(params)
+		"set_navigation_layers":
+			return _set_navigation_layers(params)
+		"get_navigation_info":
+			return _get_navigation_info(params)
+
+		# --- Bloco 13: AnimationTree/StateMachine ---
+		"create_animation_tree":
+			return _create_animation_tree(params)
+		"get_animation_tree_structure":
+			return _get_animation_tree_structure(params)
+		"set_tree_parameter":
+			return _set_tree_parameter(params)
+		"add_state_machine_state":
+			return _add_state_machine_state(params)
+		"remove_state_machine_state":
+			return _remove_state_machine_state(params)
+		"add_state_machine_transition":
+			return _add_state_machine_transition(params)
+		"remove_state_machine_transition":
+			return _remove_state_machine_transition(params)
+		"set_blend_tree_node":
+			return _set_blend_tree_node(params)
+
+		# --- Bloco 14: Shader + Export + Profiling ---
+		"create_shader":
+			return _create_shader(params)
+		"read_shader":
+			return _read_shader(params)
+		"edit_shader":
+			return _edit_shader(params)
+		"assign_shader_material":
+			return _assign_shader_material(params)
+		"set_shader_param":
+			return _set_shader_param(params)
+		"get_shader_params":
+			return _get_shader_params(params)
+		"list_export_presets":
+			return _list_export_presets()
+		"export_project":
+			return _export_project(params)
+		"get_export_info":
+			return _get_export_info()
+		"get_performance_monitors":
+			return _get_performance_monitors()
+		"get_editor_performance":
+			return _get_editor_performance()
+
+		# --- Bloco 15: Batch/Refactoring + Analysis ---
+		"find_nodes_by_type":
+			return _find_nodes_by_type(params)
+		"find_signal_connections":
+			return _find_signal_connections(params)
+		"batch_set_property":
+			return _batch_set_property(params)
+		"find_node_references":
+			return _find_node_references(params)
+		"get_scene_dependencies":
+			return _get_scene_dependencies(params)
+		"cross_scene_set_property":
+			return _cross_scene_set_property(params)
+		"find_script_references":
+			return _find_script_references(params)
+		"detect_circular_dependencies":
+			return _detect_circular_dependencies(params)
+		"analyze_scene_complexity":
+			return _analyze_scene_complexity(params)
+		"analyze_signal_flow":
+			return _analyze_signal_flow(params)
+		"find_unused_resources":
+			return _find_unused_resources(params)
+		"get_project_statistics":
+			return _get_project_statistics()
+
+		# --- Bloco 16: 3D ---
+		"add_mesh_instance":
+			return _add_mesh_instance(params)
+		"setup_camera_3d":
+			return _setup_camera_3d(params)
+		"setup_lighting":
+			return _setup_lighting(params)
+		"setup_environment":
+			return _setup_environment(params)
+		"add_gridmap":
+			return _add_gridmap(params)
+		"set_material_3d":
+			return _set_material_3d(params)
+
 		"ping":
 			return { "status": "success", "message": "Pong! CromAI Godot Bridge ativo." }
 		_:
@@ -1621,6 +1839,1652 @@ func _set_animation_keyframe(params: Dictionary) -> Dictionary:
 	anim.track_insert_key(track_idx, time, params.get("value"))
 	_mark_scene_modified()
 	return { "status": "success", "message": "Keyframe inserido em t=%.2fs na track %d." % [time, track_idx] }
+
+# ==============================================================================
+# BLOCO 5 — Paridade godot-mcp-pro: TileMap / Input / Editor / Animation / Physics
+# ==============================================================================
+
+# --- TileMap extras ---
+
+# Preenche um retângulo de células num TileMap/TileMapLayer com um tile específico.
+func _tilemap_fill_rect(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var from_raw: Variant = params.get("from", [0, 0])
+	var to_raw: Variant = params.get("to", [0, 0])
+	if not (from_raw is Array and from_raw.size() >= 2 and to_raw is Array and to_raw.size() >= 2):
+		return { "status": "error", "message": "'from' e 'to' devem ser [x, y]." }
+	var from := Vector2i(int(from_raw[0]), int(from_raw[1]))
+	var to := Vector2i(int(to_raw[0]), int(to_raw[1]))
+	var source_id: int = int(params.get("source_id", 0))
+	var atlas_raw: Variant = params.get("atlas_coords", [0, 0])
+	var atlas_coords := Vector2i(
+		int(atlas_raw[0]) if atlas_raw is Array and atlas_raw.size() >= 2 else 0,
+		int(atlas_raw[1]) if atlas_raw is Array and atlas_raw.size() >= 2 else 0
+	)
+	var alt_id: int = int(params.get("alternative_tile", 0))
+
+	# Normaliza o retângulo (garante min <= max)
+	var min_x := mini(from.x, to.x)
+	var max_x := maxi(from.x, to.x)
+	var min_y := mini(from.y, to.y)
+	var max_y := maxi(from.y, to.y)
+	var count := 0
+
+	if target is TileMapLayer:
+		for x in range(min_x, max_x + 1):
+			for y in range(min_y, max_y + 1):
+				target.set_cell(Vector2i(x, y), source_id, atlas_coords, alt_id)
+				count += 1
+	elif target is TileMap:
+		var layer: int = int(params.get("layer", 0))
+		for x in range(min_x, max_x + 1):
+			for y in range(min_y, max_y + 1):
+				target.set_cell(layer, Vector2i(x, y), source_id, atlas_coords, alt_id)
+				count += 1
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é TileMap ou TileMapLayer." % [target.name, target.get_class()] }
+	_mark_scene_modified()
+	return { "status": "success", "cells_filled": count, "message": "%d célula(s) preenchida(s) de (%d,%d) a (%d,%d)." % [count, min_x, min_y, max_x, max_y] }
+
+# Limpa TODAS as células de um TileMap/TileMapLayer.
+func _tilemap_clear(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	if target is TileMapLayer:
+		target.clear()
+	elif target is TileMap:
+		var layer_raw: Variant = params.get("layer", null)
+		if layer_raw != null:
+			# Limpa só uma camada (set_cell com source -1 = erase)
+			var layer: int = int(layer_raw)
+			for c: Vector2i in target.get_used_cells(layer):
+				target.erase_cell(layer, c)
+		else:
+			# Limpa TODAS as camadas
+			for l in range(target.get_layers_count()):
+				for c: Vector2i in target.get_used_cells(l):
+					target.erase_cell(l, c)
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é TileMap ou TileMapLayer." % [target.name, target.get_class()] }
+	_mark_scene_modified()
+	return { "status": "success", "message": "TileMap '%s' limpo." % target.name }
+
+# Retorna informações sobre um TileMap/TileMapLayer: TileSet, cell_size, camadas, etc.
+func _tilemap_get_info(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var node_path: String = str(params.get("node_path", "."))
+	var target: Node = _resolve_node(scene_root, node_path)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado em '%s'." % node_path }
+
+	var info: Dictionary = { "status": "success", "node": target.name, "type": target.get_class() }
+
+	if target is TileMapLayer:
+		var ts: TileSet = target.tile_set
+		info["has_tileset"] = ts != null
+		if ts:
+			info["tile_size"] = [ts.tile_size.x, ts.tile_size.y]
+			info["sources_count"] = ts.get_source_count()
+		info["used_cells"] = target.get_used_cells().size()
+		info["message"] = "TileMapLayer '%s': %d célula(s) usada(s)." % [target.name, info["used_cells"]]
+	elif target is TileMap:
+		var ts: TileSet = target.tile_set
+		info["has_tileset"] = ts != null
+		if ts:
+			info["tile_size"] = [ts.tile_size.x, ts.tile_size.y]
+			info["sources_count"] = ts.get_source_count()
+		var layers_info: Array = []
+		for i in range(target.get_layers_count()):
+			var lname := target.get_layer_name(i)
+			var used := target.get_used_cells(i).size()
+			layers_info.append({ "index": i, "name": lname if lname != "" else "Layer %d" % i, "used_cells": used, "enabled": target.is_layer_enabled(i) })
+		info["layers"] = layers_info
+		info["layer_count"] = target.get_layers_count()
+		var total := 0
+		for l in layers_info:
+			total += int(l["used_cells"])
+		info["total_used_cells"] = total
+		info["message"] = "TileMap '%s': %d camada(s), %d célula(s) total." % [target.name, info["layer_count"], total]
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é TileMap ou TileMapLayer." % [target.name, target.get_class()] }
+	return info
+
+# --- Input extras ---
+
+# Simula um clique do mouse (press + release) nas coordenadas especificadas.
+func _simulate_mouse_click(params: Dictionary) -> Dictionary:
+	var pos_raw: Variant = params.get("position", [0, 0])
+	if not (pos_raw is Array and pos_raw.size() >= 2):
+		return { "status": "error", "message": "'position' deve ser [x, y]." }
+	var pos := Vector2(float(pos_raw[0]), float(pos_raw[1]))
+	var button: int = int(params.get("button", MOUSE_BUTTON_LEFT))
+	var double_click: bool = bool(params.get("double_click", false))
+
+	# Press
+	var ev_press := InputEventMouseButton.new()
+	ev_press.button_index = button
+	ev_press.pressed = true
+	ev_press.position = pos
+	ev_press.global_position = pos
+	ev_press.double_click = double_click
+	Input.parse_input_event(ev_press)
+
+	# Release (1 frame depois)
+	var ev_release := InputEventMouseButton.new()
+	ev_release.button_index = button
+	ev_release.pressed = false
+	ev_release.position = pos
+	ev_release.global_position = pos
+	Input.parse_input_event(ev_release)
+
+	var btn_name := "left" if button == MOUSE_BUTTON_LEFT else ("right" if button == MOUSE_BUTTON_RIGHT else "middle")
+	return { "status": "success", "message": "Clique %s%s em (%.0f, %.0f) simulado." % [btn_name, " duplo" if double_click else "", pos.x, pos.y] }
+
+# Simula um evento de movimento do mouse para as coordenadas especificadas.
+func _simulate_mouse_move(params: Dictionary) -> Dictionary:
+	var pos_raw: Variant = params.get("position", [0, 0])
+	if not (pos_raw is Array and pos_raw.size() >= 2):
+		return { "status": "error", "message": "'position' deve ser [x, y]." }
+	var pos := Vector2(float(pos_raw[0]), float(pos_raw[1]))
+	var relative_raw: Variant = params.get("relative", null)
+
+	var ev := InputEventMouseMotion.new()
+	ev.position = pos
+	ev.global_position = pos
+	if relative_raw is Array and relative_raw.size() >= 2:
+		ev.relative = Vector2(float(relative_raw[0]), float(relative_raw[1]))
+	Input.parse_input_event(ev)
+	return { "status": "success", "message": "Mouse movido para (%.0f, %.0f)." % [pos.x, pos.y] }
+
+# Executa uma SEQUÊNCIA de inputs com delays entre cada passo.
+# Cada step: { "type": "key"|"action"|"mouse_click"|"wait", "key": ..., "action": ..., "position": [...], "delay_ms": ... }
+func _simulate_sequence(params: Dictionary) -> Dictionary:
+	var steps_raw: Variant = params.get("steps", [])
+	if not (steps_raw is Array) or steps_raw.size() == 0:
+		return { "status": "error", "message": "'steps' deve ser um array não-vazio de inputs." }
+	var default_delay: int = clampi(int(params.get("interval_ms", 100)), 0, 2000)
+	var executed := 0
+
+	for step_raw: Variant in steps_raw:
+		if not (step_raw is Dictionary):
+			continue
+		var step: Dictionary = step_raw as Dictionary
+		var step_type := str(step.get("type", "key"))
+		var delay: int = int(step.get("delay_ms", default_delay))
+
+		match step_type:
+			"key":
+				var key_name := str(step.get("key", ""))
+				if key_name != "":
+					var keycode := OS.find_keycode_from_string(key_name)
+					if keycode != KEY_NONE:
+						var ev := InputEventKey.new()
+						ev.keycode = keycode
+						ev.physical_keycode = keycode
+						# Press
+						ev.pressed = true
+						Input.parse_input_event(ev)
+						OS.delay_msec(clampi(int(step.get("hold_ms", 50)), 10, 1000))
+						# Release
+						var ev_r := InputEventKey.new()
+						ev_r.keycode = keycode
+						ev_r.physical_keycode = keycode
+						ev_r.pressed = false
+						Input.parse_input_event(ev_r)
+						executed += 1
+			"action":
+				var action_name := str(step.get("action", ""))
+				if action_name != "":
+					Input.action_press(action_name)
+					OS.delay_msec(clampi(int(step.get("hold_ms", 50)), 10, 1000))
+					Input.action_release(action_name)
+					executed += 1
+			"mouse_click":
+				var pos_raw: Variant = step.get("position", [0, 0])
+				if pos_raw is Array and pos_raw.size() >= 2:
+					var pos := Vector2(float(pos_raw[0]), float(pos_raw[1]))
+					var ev_p := InputEventMouseButton.new()
+					ev_p.button_index = MOUSE_BUTTON_LEFT
+					ev_p.pressed = true
+					ev_p.position = pos
+					ev_p.global_position = pos
+					Input.parse_input_event(ev_p)
+					var ev_rel := InputEventMouseButton.new()
+					ev_rel.button_index = MOUSE_BUTTON_LEFT
+					ev_rel.pressed = false
+					ev_rel.position = pos
+					ev_rel.global_position = pos
+					Input.parse_input_event(ev_rel)
+					executed += 1
+			"wait":
+				# Só espera o delay
+				executed += 1
+
+		if delay > 0:
+			OS.delay_msec(delay)
+
+	return { "status": "success", "steps_executed": executed, "total_steps": steps_raw.size(), "message": "%d/%d passo(s) de input executado(s)." % [executed, steps_raw.size()] }
+
+# --- Editor extras ---
+
+# Executa um snippet GDScript no contexto do editor (via @tool script temporário).
+func _execute_editor_script(params: Dictionary) -> Dictionary:
+	var code: String = str(params.get("code", params.get("gdscript_code", "")))
+	if code.strip_edges() == "":
+		return { "status": "error", "message": "Parâmetro 'code' obrigatório (snippet GDScript a executar)." }
+
+	# Prepara o script temporário
+	var tmp_path := "res://.crom_editor_script_tmp.gd"
+	# Garante que é @tool e tem uma função executável
+	var full_code := "@tool\nextends EditorScript\n\nfunc _run() -> void:\n"
+	# Indenta cada linha do código do usuário
+	for line in code.split("\n"):
+		full_code += "\t" + line + "\n"
+
+	# Escreve no disco
+	var f := FileAccess.open(tmp_path, FileAccess.WRITE)
+	if not f:
+		return { "status": "error", "message": "Falha ao criar script temporário." }
+	f.store_string(full_code)
+	f.close()
+
+	# Carrega e executa
+	_refresh_editor_filesystem()
+	var script: Script = ResourceLoader.load(tmp_path, "Script", ResourceLoader.CACHE_MODE_REPLACE)
+	if not script:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
+		return { "status": "error", "message": "Falha ao carregar script temporário." }
+
+	var instance: Variant = script.new()
+	if instance == null:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
+		return { "status": "error", "message": "Falha ao instanciar EditorScript." }
+
+	# EditorScript.run() é o ponto de entrada
+	if instance.has_method("_run"):
+		instance._run()
+
+	# Limpa o temporário
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
+	_refresh_editor_filesystem()
+
+	return { "status": "success", "message": "Script do editor executado com sucesso." }
+
+# Desabilita e re-habilita um EditorPlugin pelo nome (recarrega).
+func _reload_plugin(params: Dictionary) -> Dictionary:
+	var plugin_name := str(params.get("plugin_name", params.get("name", "")))
+	if plugin_name == "":
+		return { "status": "error", "message": "Parâmetro 'plugin_name' obrigatório (nome da pasta do addon em addons/)." }
+
+	# O caminho do plugin.cfg
+	var cfg_path := "res://addons/%s/plugin.cfg" % plugin_name
+	if not FileAccess.file_exists(cfg_path):
+		return { "status": "error", "message": "Plugin não encontrado: '%s' (esperava %s)." % [plugin_name, cfg_path] }
+
+	if not editor_plugin or not editor_plugin.get_editor_interface():
+		return { "status": "error", "message": "EditorInterface indisponível." }
+
+	# Desabilita
+	EditorInterface.set_plugin_enabled(plugin_name, false)
+	# Re-habilita
+	EditorInterface.set_plugin_enabled(plugin_name, true)
+	return { "status": "success", "message": "Plugin '%s' recarregado." % plugin_name }
+
+# Solicita reinicialização do editor Godot.
+func _reload_project() -> Dictionary:
+	if not editor_plugin or not editor_plugin.get_editor_interface():
+		return { "status": "error", "message": "EditorInterface indisponível." }
+	EditorInterface.restart_editor()
+	return { "status": "success", "message": "Editor Godot reiniciando... A conexão WebSocket será perdida. Reconecte após o restart." }
+
+# --- Animation extras ---
+
+# Remove uma animação de um AnimationPlayer.
+func _remove_animation(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not (target is AnimationPlayer):
+		return { "status": "error", "message": "node_path precisa apontar para um AnimationPlayer." }
+	var player := target as AnimationPlayer
+	var anim_name := str(params.get("animation_name", ""))
+	if anim_name == "":
+		return { "status": "error", "message": "Parâmetro 'animation_name' obrigatório." }
+	if not player.has_animation(anim_name):
+		return { "status": "error", "message": "Animação '%s' não existe no AnimationPlayer '%s'." % [anim_name, target.name] }
+
+	# Procura em qual biblioteca a animação está
+	var removed := false
+	for lib_name: StringName in player.get_animation_library_list():
+		var lib: AnimationLibrary = player.get_animation_library(lib_name)
+		if lib and lib.has_animation(anim_name):
+			lib.remove_animation(anim_name)
+			removed = true
+			break
+	if not removed:
+		return { "status": "error", "message": "Animação '%s' não encontrada em nenhuma biblioteca." % anim_name }
+	_mark_scene_modified()
+	return { "status": "success", "message": "Animação '%s' removida do AnimationPlayer '%s'." % [anim_name, target.name] }
+
+# --- Physics extras ---
+
+# Retorna informações de colisão de um corpo físico (shapes, layers, mask).
+func _get_collision_info(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+
+	var info: Dictionary = { "status": "success", "node": str(target.name), "type": target.get_class() }
+
+	# collision_layer e collision_mask (CollisionObject2D e 3D)
+	if "collision_layer" in target:
+		info["collision_layer"] = int(target.get("collision_layer"))
+		info["collision_mask"] = int(target.get("collision_mask"))
+	else:
+		return { "status": "error", "message": "O nó '%s' (%s) não é um corpo físico (sem collision_layer)." % [target.name, target.get_class()] }
+
+	# Coleta shapes dos filhos CollisionShape2D/3D e CollisionPolygon2D/3D
+	var shapes: Array = []
+	for child in target.get_children():
+		if child is CollisionShape2D:
+			var shape_info: Dictionary = { "node": child.name, "type": "CollisionShape2D", "disabled": child.disabled }
+			if child.shape:
+				shape_info["shape_type"] = child.shape.get_class()
+				if child.shape is RectangleShape2D:
+					shape_info["size"] = [child.shape.size.x, child.shape.size.y]
+				elif child.shape is CircleShape2D:
+					shape_info["radius"] = child.shape.radius
+				elif child.shape is CapsuleShape2D:
+					shape_info["radius"] = child.shape.radius
+					shape_info["height"] = child.shape.height
+			else:
+				shape_info["shape_type"] = "none"
+			shapes.append(shape_info)
+		elif child is CollisionPolygon2D:
+			var poly_info: Dictionary = { "node": child.name, "type": "CollisionPolygon2D", "disabled": child.disabled }
+			poly_info["vertex_count"] = child.polygon.size()
+			shapes.append(poly_info)
+
+	info["shapes"] = shapes
+	info["shape_count"] = shapes.size()
+
+	# Monitoramento (para Area2D)
+	if target is Area2D:
+		info["monitoring"] = target.monitoring
+		info["monitorable"] = target.monitorable
+
+	info["message"] = "%s '%s': layer=%d, mask=%d, %d shape(s)." % [target.get_class(), target.name, info.get("collision_layer", 0), info.get("collision_mask", 0), shapes.size()]
+	return info
+
+# ==============================================================================
+# BLOCOS 6–16 — Todas as ferramentas restantes (paridade godot-mcp-pro)
+# ==============================================================================
+
+# --- Bloco 6: Audio ---
+
+func _add_audio_player(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var parent_path := str(params.get("parent_path", "."))
+	var parent: Node = _resolve_node(scene_root, parent_path)
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
+	var player_type := str(params.get("type", "AudioStreamPlayer"))
+	if player_type not in ["AudioStreamPlayer", "AudioStreamPlayer2D", "AudioStreamPlayer3D"]:
+		player_type = "AudioStreamPlayer"
+	var node: Node = ClassDB.instantiate(player_type)
+	node.name = str(params.get("node_name", player_type))
+	parent.add_child(node)
+	node.owner = scene_root
+	var stream_path := str(params.get("stream_path", ""))
+	if stream_path != "" and FileAccess.file_exists(stream_path):
+		var stream: AudioStream = ResourceLoader.load(stream_path) as AudioStream
+		if stream:
+			node.set("stream", stream)
+	if params.has("bus"):
+		node.set("bus", str(params.get("bus")))
+	if params.has("volume_db"):
+		node.set("volume_db", float(params.get("volume_db")))
+	if params.has("autoplay"):
+		node.set("autoplay", bool(params.get("autoplay")))
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(node), "message": "%s '%s' adicionado." % [player_type, node.name] }
+
+func _add_audio_bus(params: Dictionary) -> Dictionary:
+	var bus_name := str(params.get("bus_name", "NewBus"))
+	AudioServer.add_bus()
+	var idx := AudioServer.bus_count - 1
+	AudioServer.set_bus_name(idx, bus_name)
+	if params.has("send"):
+		AudioServer.set_bus_send(idx, str(params.get("send")))
+	if params.has("volume_db"):
+		AudioServer.set_bus_volume_db(idx, float(params.get("volume_db")))
+	return { "status": "success", "bus_index": idx, "bus_name": bus_name, "message": "Bus de áudio '%s' criado (índice %d)." % [bus_name, idx] }
+
+func _add_audio_bus_effect(params: Dictionary) -> Dictionary:
+	var bus_name := str(params.get("bus_name", "Master"))
+	var idx := AudioServer.get_bus_index(bus_name)
+	if idx < 0:
+		return { "status": "error", "message": "Bus '%s' não encontrado." % bus_name }
+	var effect_type := str(params.get("effect_type", "AudioEffectReverb"))
+	if not ClassDB.class_exists(effect_type) or not ClassDB.is_parent_class(effect_type, "AudioEffect"):
+		return { "status": "error", "message": "'%s' não é um AudioEffect válido." % effect_type }
+	var effect: AudioEffect = ClassDB.instantiate(effect_type) as AudioEffect
+	AudioServer.add_bus_effect(idx, effect)
+	return { "status": "success", "message": "Efeito '%s' adicionado ao bus '%s'." % [effect_type, bus_name] }
+
+func _set_audio_bus(params: Dictionary) -> Dictionary:
+	var bus_name := str(params.get("bus_name", "Master"))
+	var idx := AudioServer.get_bus_index(bus_name)
+	if idx < 0:
+		return { "status": "error", "message": "Bus '%s' não encontrado." % bus_name }
+	if params.has("volume_db"):
+		AudioServer.set_bus_volume_db(idx, float(params.get("volume_db")))
+	if params.has("mute"):
+		AudioServer.set_bus_mute(idx, bool(params.get("mute")))
+	if params.has("solo"):
+		AudioServer.set_bus_solo(idx, bool(params.get("solo")))
+	if params.has("send"):
+		AudioServer.set_bus_send(idx, str(params.get("send")))
+	return { "status": "success", "message": "Bus '%s' atualizado." % bus_name }
+
+func _get_audio_bus_layout(_params: Dictionary) -> Dictionary:
+	var buses: Array = []
+	for i in range(AudioServer.bus_count):
+		var effects: Array = []
+		for e in range(AudioServer.get_bus_effect_count(i)):
+			var eff := AudioServer.get_bus_effect(i, e)
+			effects.append({ "type": eff.get_class() if eff else "null", "enabled": AudioServer.is_bus_effect_enabled(i, e) })
+		buses.append({ "name": AudioServer.get_bus_name(i), "index": i, "volume_db": AudioServer.get_bus_volume_db(i), "mute": AudioServer.is_bus_mute(i), "solo": AudioServer.is_bus_solo(i), "send": AudioServer.get_bus_send(i), "effects": effects })
+	return { "status": "success", "bus_count": AudioServer.bus_count, "buses": buses }
+
+func _get_audio_info(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var info: Dictionary = { "status": "success", "node": str(target.name), "type": target.get_class() }
+	if "stream" in target:
+		var s: Variant = target.get("stream")
+		info["has_stream"] = s != null
+		info["stream_type"] = s.get_class() if s else "none"
+	if "bus" in target:
+		info["bus"] = str(target.get("bus"))
+	if "volume_db" in target:
+		info["volume_db"] = float(target.get("volume_db"))
+	if "autoplay" in target:
+		info["autoplay"] = bool(target.get("autoplay"))
+	info["message"] = "Info de áudio do nó '%s'." % target.name
+	return info
+
+# --- Bloco 7: Theme & UI ---
+
+func _create_theme(params: Dictionary) -> Dictionary:
+	var save_path := str(params.get("save_path", ""))
+	var theme := Theme.new()
+	if save_path != "":
+		var dir := save_path.get_base_dir()
+		if dir != "" and dir != "res://" and not DirAccess.dir_exists_absolute(dir):
+			DirAccess.make_dir_recursive_absolute(dir)
+		var e := ResourceSaver.save(theme, save_path)
+		if e != OK:
+			return { "status": "error", "message": "Falha ao salvar tema (erro %d)." % e }
+		_refresh_editor_filesystem()
+		return { "status": "success", "message": "Tema salvo em '%s'." % save_path, "save_path": save_path }
+	return { "status": "success", "message": "Tema criado (não salvo — informe save_path)." }
+
+func _set_theme_color(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("theme" in target):
+		return { "status": "error", "message": "Nó não encontrado ou não suporta tema." }
+	var theme: Theme = target.get("theme")
+	if not theme:
+		theme = Theme.new()
+		target.set("theme", theme)
+	var item_name := str(params.get("item_name", ""))
+	var type_name := str(params.get("type_name", target.get_class()))
+	var color_raw: Variant = params.get("color", [1, 1, 1, 1])
+	var color := Color.WHITE
+	if color_raw is Array and color_raw.size() >= 3:
+		color = Color(float(color_raw[0]), float(color_raw[1]), float(color_raw[2]), float(color_raw[3]) if color_raw.size() > 3 else 1.0)
+	theme.set_color(item_name, type_name, color)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Cor '%s' definida no tema para '%s'." % [item_name, type_name] }
+
+func _set_theme_constant(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("theme" in target):
+		return { "status": "error", "message": "Nó não encontrado ou não suporta tema." }
+	var theme: Theme = target.get("theme")
+	if not theme:
+		theme = Theme.new()
+		target.set("theme", theme)
+	theme.set_constant(str(params.get("item_name", "")), str(params.get("type_name", target.get_class())), int(params.get("value", 0)))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Constante de tema definida." }
+
+func _set_theme_font_size(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("theme" in target):
+		return { "status": "error", "message": "Nó não encontrado ou não suporta tema." }
+	var theme: Theme = target.get("theme")
+	if not theme:
+		theme = Theme.new()
+		target.set("theme", theme)
+	theme.set_font_size(str(params.get("item_name", "font_size")), str(params.get("type_name", target.get_class())), int(params.get("size", 16)))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Tamanho de fonte no tema definido." }
+
+func _set_theme_stylebox(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("theme" in target):
+		return { "status": "error", "message": "Nó não encontrado ou não suporta tema." }
+	var theme: Theme = target.get("theme")
+	if not theme:
+		theme = Theme.new()
+		target.set("theme", theme)
+	var sb := StyleBoxFlat.new()
+	var bg: Variant = params.get("bg_color", null)
+	if bg is Array and bg.size() >= 3:
+		sb.bg_color = Color(float(bg[0]), float(bg[1]), float(bg[2]), float(bg[3]) if bg.size() > 3 else 1.0)
+	if params.has("corner_radius"):
+		var r := int(params.get("corner_radius"))
+		sb.corner_radius_top_left = r; sb.corner_radius_top_right = r; sb.corner_radius_bottom_left = r; sb.corner_radius_bottom_right = r
+	if params.has("border_width"):
+		var bw := int(params.get("border_width"))
+		sb.border_width_left = bw; sb.border_width_right = bw; sb.border_width_top = bw; sb.border_width_bottom = bw
+	theme.set_stylebox(str(params.get("item_name", "panel")), str(params.get("type_name", target.get_class())), sb)
+	_mark_scene_modified()
+	return { "status": "success", "message": "StyleBox definido no tema." }
+
+func _get_theme_info(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("theme" in target):
+		return { "status": "error", "message": "Nó não encontrado ou não suporta tema." }
+	var theme: Theme = target.get("theme")
+	if not theme:
+		return { "status": "success", "has_theme": false, "message": "Nó '%s' não tem tema definido." % target.name }
+	var info: Dictionary = { "status": "success", "has_theme": true }
+	info["type_list"] = Array(theme.get_type_list())
+	return info
+
+# --- Bloco 8: Resource/Project ---
+
+func _edit_resource(params: Dictionary) -> Dictionary:
+	var res_path := str(params.get("resource_path", ""))
+	if res_path == "" or not FileAccess.file_exists(res_path):
+		return { "status": "error", "message": "Recurso não encontrado: '%s'." % res_path }
+	var res: Resource = ResourceLoader.load(res_path)
+	if not res:
+		return { "status": "error", "message": "Falha ao carregar recurso '%s'." % res_path }
+	var props: Dictionary = params.get("properties", {}) if params.get("properties") is Dictionary else {}
+	for k in props:
+		if k in res:
+			res.set(k, _coerce_value(res, k, props[k]))
+	var e := ResourceSaver.save(res, res_path)
+	if e != OK:
+		return { "status": "error", "message": "Falha ao salvar recurso (erro %d)." % e }
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Recurso '%s' editado." % res_path }
+
+func _get_resource_preview(params: Dictionary) -> Dictionary:
+	var res_path := str(params.get("resource_path", ""))
+	if res_path == "":
+		return { "status": "error", "message": "Parâmetro 'resource_path' obrigatório." }
+	# O EditorResourcePreview gera thumbnails, mas é assíncrono. Retornamos info básica.
+	if not FileAccess.file_exists(res_path):
+		return { "status": "error", "message": "Recurso '%s' não encontrado." % res_path }
+	var res: Resource = ResourceLoader.load(res_path)
+	if not res:
+		return { "status": "error", "message": "Falha ao carregar recurso." }
+	return { "status": "success", "resource_path": res_path, "type": res.get_class(), "message": "Recurso '%s' (%s)." % [res_path, res.get_class()] }
+
+func _add_autoload(params: Dictionary) -> Dictionary:
+	var autoload_name := str(params.get("name", ""))
+	var path := str(params.get("path", ""))
+	if autoload_name == "" or path == "":
+		return { "status": "error", "message": "Parâmetros 'name' e 'path' obrigatórios." }
+	ProjectSettings.set_setting("autoload/%s" % autoload_name, "*%s" % path)
+	ProjectSettings.save()
+	return { "status": "success", "message": "Autoload '%s' -> '%s' adicionado." % [autoload_name, path] }
+
+func _remove_autoload(params: Dictionary) -> Dictionary:
+	var autoload_name := str(params.get("name", ""))
+	if autoload_name == "":
+		return { "status": "error", "message": "Parâmetro 'name' obrigatório." }
+	var setting := "autoload/%s" % autoload_name
+	if not ProjectSettings.has_setting(setting):
+		return { "status": "error", "message": "Autoload '%s' não existe." % autoload_name }
+	ProjectSettings.set_setting(setting, null)
+	ProjectSettings.save()
+	return { "status": "success", "message": "Autoload '%s' removido." % autoload_name }
+
+func _uid_to_project_path(params: Dictionary) -> Dictionary:
+	var uid_str := str(params.get("uid", ""))
+	if uid_str == "":
+		return { "status": "error", "message": "Parâmetro 'uid' obrigatório." }
+	var uid := ResourceUID.text_to_id(uid_str)
+	if uid == ResourceUID.INVALID_ID:
+		return { "status": "error", "message": "UID inválido: '%s'." % uid_str }
+	if not ResourceUID.has_id(uid):
+		return { "status": "error", "message": "UID não registrado: '%s'." % uid_str }
+	var path := ResourceUID.get_id_path(uid)
+	return { "status": "success", "uid": uid_str, "path": path, "message": "%s -> %s" % [uid_str, path] }
+
+func _project_path_to_uid(params: Dictionary) -> Dictionary:
+	var path := str(params.get("path", ""))
+	if path == "":
+		return { "status": "error", "message": "Parâmetro 'path' obrigatório." }
+	var uid := ResourceLoader.get_resource_uid(path)
+	if uid == ResourceUID.INVALID_ID:
+		return { "status": "error", "message": "Nenhum UID para '%s'." % path }
+	return { "status": "success", "path": path, "uid": ResourceUID.id_to_text(uid) }
+
+func _list_scripts(params: Dictionary) -> Dictionary:
+	var dir := str(params.get("dir_path", "res://"))
+	var results: Array = []
+	_walk_scripts(dir, results)
+	return { "status": "success", "count": results.size(), "scripts": results }
+
+func _walk_scripts(dir: String, out: Array) -> void:
+	if out.size() >= 500:
+		return
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var f := d.get_next()
+	while f != "" and out.size() < 500:
+		if f in [".", ".."] or f.begins_with(".godot") or f == ".crom":
+			f = d.get_next()
+			continue
+		var full := dir.path_join(f)
+		if d.current_is_dir():
+			_walk_scripts(full, out)
+		elif f.ends_with(".gd") or f.ends_with(".cs"):
+			out.append(full)
+		f = d.get_next()
+	d.list_dir_end()
+
+func _search_in_files(params: Dictionary) -> Dictionary:
+	var query := str(params.get("query", ""))
+	if query == "":
+		return { "status": "error", "message": "Parâmetro 'query' obrigatório." }
+	var dir := str(params.get("dir_path", "res://"))
+	var exts: Array = params.get("extensions", [".gd", ".tscn", ".tres", ".cfg"]) if params.get("extensions") is Array else [".gd", ".tscn", ".tres", ".cfg"]
+	var results: Array = []
+	_walk_search_content(dir, query.to_lower(), exts, results)
+	return { "status": "success", "query": query, "count": results.size(), "matches": results }
+
+func _walk_search_content(dir: String, q: String, exts: Array, out: Array) -> void:
+	if out.size() >= 100:
+		return
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var f := d.get_next()
+	while f != "" and out.size() < 100:
+		if f in [".", ".."] or f.begins_with(".godot"):
+			f = d.get_next()
+			continue
+		var full := dir.path_join(f)
+		if d.current_is_dir():
+			_walk_search_content(full, q, exts, out)
+		else:
+			var match_ext := false
+			for ext in exts:
+				if f.ends_with(str(ext)):
+					match_ext = true
+					break
+			if match_ext:
+				var content := FileAccess.get_file_as_string(full)
+				if content.to_lower().contains(q):
+					# Encontra a(s) linha(s) que contém
+					var lines := content.split("\n")
+					var matches: Array = []
+					for li in range(lines.size()):
+						if String(lines[li]).to_lower().contains(q):
+							matches.append({ "line": li + 1, "content": String(lines[li]).strip_edges().substr(0, 200) })
+							if matches.size() >= 5:
+								break
+					out.append({ "file": full, "matches": matches })
+		f = d.get_next()
+	d.list_dir_end()
+
+# --- Bloco 9: Node/Selection ---
+
+func _select_nodes(params: Dictionary) -> Dictionary:
+	if not editor_plugin or not editor_plugin.get_editor_interface():
+		return { "status": "error", "message": "EditorInterface indisponível." }
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var paths_raw: Variant = params.get("node_paths", [])
+	if not (paths_raw is Array):
+		return { "status": "error", "message": "'node_paths' deve ser um array." }
+	var selection := editor_plugin.get_editor_interface().get_selection()
+	selection.clear()
+	var selected := 0
+	for p: Variant in paths_raw:
+		var node: Node = _resolve_node(scene_root, str(p))
+		if node:
+			selection.add_node(node)
+			selected += 1
+	return { "status": "success", "selected": selected, "message": "%d nó(s) selecionado(s)." % selected }
+
+func _clear_editor_selection() -> Dictionary:
+	if not editor_plugin or not editor_plugin.get_editor_interface():
+		return { "status": "error", "message": "EditorInterface indisponível." }
+	editor_plugin.get_editor_interface().get_selection().clear()
+	return { "status": "success", "message": "Seleção limpa." }
+
+func _set_anchor_preset(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is Control):
+		return { "status": "error", "message": "Nó não é um Control." }
+	var preset: int = int(params.get("preset", 0))  # PRESET_TOP_LEFT=0, PRESET_CENTER=8, PRESET_FULL_RECT=15, etc.
+	(target as Control).set_anchors_preset(preset)
+	if params.has("resize"):
+		(target as Control).set_anchors_preset(preset, bool(params.get("resize")))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Anchor preset %d aplicado a '%s'." % [preset, target.name] }
+
+# --- Bloco 10: Runtime avançado (editor-side) ---
+
+var _recording: Array = []
+var _recording_active := false
+var _recording_node := ""
+var _recording_prop := ""
+
+func _execute_game_script(params: Dictionary) -> Dictionary:
+	var code := str(params.get("code", ""))
+	if code == "":
+		return { "status": "error", "message": "Parâmetro 'code' obrigatório." }
+	return _query_runtime("execute_script", { "code": code })
+
+func _start_recording(params: Dictionary) -> Dictionary:
+	_recording.clear()
+	_recording_active = true
+	_recording_node = str(params.get("node_path", "."))
+	_recording_prop = str(params.get("property", "position"))
+	return { "status": "success", "message": "Gravação iniciada para '%s.%s'." % [_recording_node, _recording_prop] }
+
+func _stop_recording(_params: Dictionary) -> Dictionary:
+	_recording_active = false
+	# Coleta as amostras finais do runtime
+	var samples := int(_params.get("samples", 10))
+	for i in range(samples):
+		var r := _query_runtime("get_property", { "node_path": _recording_node, "property": _recording_prop })
+		if r.get("status") == "success":
+			_recording.append({ "frame": i, "value": r.get("value") })
+		OS.delay_msec(100)
+	return { "status": "success", "recording": _recording, "sample_count": _recording.size(), "message": "Gravação parada. %d amostras." % _recording.size() }
+
+func _replay_recording(_params: Dictionary) -> Dictionary:
+	if _recording.is_empty():
+		return { "status": "error", "message": "Nenhuma gravação disponível. Use start_recording/stop_recording primeiro." }
+	# Aplica cada frame da gravação ao nó
+	for entry: Variant in _recording:
+		if entry is Dictionary:
+			_query_runtime("set_property", { "node_path": _recording_node, "property": _recording_prop, "value": entry.get("value") })
+			OS.delay_msec(100)
+	return { "status": "success", "message": "Replay concluído (%d frames)." % _recording.size() }
+
+func _get_autoload(params: Dictionary) -> Dictionary:
+	var autoloads: Array = []
+	for prop in ProjectSettings.get_property_list():
+		var pn: String = str(prop.get("name", ""))
+		if pn.begins_with("autoload/"):
+			var name := pn.trim_prefix("autoload/")
+			autoloads.append({ "name": name, "path": str(ProjectSettings.get_setting(pn)) })
+	return { "status": "success", "autoloads": autoloads, "count": autoloads.size() }
+
+# --- Bloco 11: Testing/QA ---
+
+func _compare_screenshots(params: Dictionary) -> Dictionary:
+	var path_a := str(params.get("path_a", ""))
+	var path_b := str(params.get("path_b", ""))
+	if path_a == "" or path_b == "":
+		return { "status": "error", "message": "Parâmetros 'path_a' e 'path_b' obrigatórios." }
+	var img_a := Image.load_from_file(path_a)
+	var img_b := Image.load_from_file(path_b)
+	if not img_a or not img_b:
+		return { "status": "error", "message": "Falha ao carregar imagens." }
+	if img_a.get_size() != img_b.get_size():
+		return { "status": "success", "identical": false, "diff_percentage": 100.0, "message": "Imagens com tamanhos diferentes (%s vs %s)." % [str(img_a.get_size()), str(img_b.get_size())] }
+	var diff_pixels := 0
+	var total := img_a.get_width() * img_a.get_height()
+	for y in range(img_a.get_height()):
+		for x in range(img_a.get_width()):
+			if img_a.get_pixel(x, y) != img_b.get_pixel(x, y):
+				diff_pixels += 1
+	var pct := (float(diff_pixels) / float(total)) * 100.0
+	return { "status": "success", "identical": diff_pixels == 0, "diff_pixels": diff_pixels, "total_pixels": total, "diff_percentage": pct, "message": "%.2f%% de pixels diferentes (%d/%d)." % [pct, diff_pixels, total] }
+
+func _run_stress_test(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	if scene_path == "":
+		scene_path = str(ProjectSettings.get_setting("application/run/main_scene", ""))
+	var frames := clampi(int(params.get("frames", 300)), 30, 3000)
+	var hv := _headless_validate(scene_path, frames)
+	return { "status": "success", "frames": frames, "errors": hv.get("errors", []), "error_count": hv.get("errors", []).size(), "return_code": hv.get("return_code", -1), "message": "Stress test: %d frames, %d erro(s)." % [frames, hv.get("errors", []).size()] }
+
+func _get_test_report(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	if scene_path == "":
+		scene_path = str(ProjectSettings.get_setting("application/run/main_scene", ""))
+	# Run headless validation
+	var hv := _headless_validate(scene_path, 90)
+	var errors: Array = hv.get("errors", [])
+	# Compile report
+	var report: Dictionary = {
+		"status": "success",
+		"scene": scene_path,
+		"error_count": errors.size(),
+		"errors": errors,
+		"passed": errors.size() == 0,
+		"message": "Relatório: %s — %d erro(s)." % [scene_path, errors.size()]
+	}
+	return report
+
+# --- Bloco 12: Particle ---
+
+func _create_particles(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var is_2d := bool(params.get("2d", true))
+	var node: Node
+	if is_2d:
+		node = GPUParticles2D.new()
+	else:
+		node = GPUParticles3D.new()
+	node.name = str(params.get("node_name", "Particles"))
+	parent.add_child(node)
+	node.owner = scene_root
+	if params.has("amount"):
+		node.set("amount", int(params.get("amount")))
+	if params.has("lifetime"):
+		node.set("lifetime", float(params.get("lifetime")))
+	if params.has("emitting"):
+		node.set("emitting", bool(params.get("emitting")))
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(node), "message": "%s '%s' criado." % [node.get_class(), node.name] }
+
+func _set_particle_material(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("process_material" in target):
+		return { "status": "error", "message": "Nó não suporta process_material." }
+	var mat := ParticleProcessMaterial.new()
+	if params.has("direction"):
+		var d: Variant = params.get("direction")
+		if d is Array and d.size() >= 3:
+			mat.direction = Vector3(float(d[0]), float(d[1]), float(d[2]))
+	if params.has("spread"):
+		mat.spread = float(params.get("spread"))
+	if params.has("gravity"):
+		var g: Variant = params.get("gravity")
+		if g is Array and g.size() >= 3:
+			mat.gravity = Vector3(float(g[0]), float(g[1]), float(g[2]))
+	if params.has("initial_velocity_min"):
+		mat.initial_velocity_min = float(params.get("initial_velocity_min"))
+	if params.has("initial_velocity_max"):
+		mat.initial_velocity_max = float(params.get("initial_velocity_max"))
+	target.set("process_material", mat)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Material de partícula definido em '%s'." % target.name }
+
+func _set_particle_color_gradient(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("process_material" in target):
+		return { "status": "error", "message": "Nó não suporta process_material." }
+	var mat: ParticleProcessMaterial = target.get("process_material") as ParticleProcessMaterial
+	if not mat:
+		mat = ParticleProcessMaterial.new()
+		target.set("process_material", mat)
+	var gradient := Gradient.new()
+	var colors_raw: Variant = params.get("colors", [])
+	if colors_raw is Array:
+		for i: int in range(colors_raw.size()):
+			var c: Variant = colors_raw[i]
+			if c is Array and c.size() >= 3:
+				var offset := float(i) / max(1.0, float(colors_raw.size() - 1))
+				if i == 0:
+					gradient.set_color(0, Color(float(c[0]), float(c[1]), float(c[2]), float(c[3]) if c.size() > 3 else 1.0))
+				else:
+					gradient.add_point(offset, Color(float(c[0]), float(c[1]), float(c[2]), float(c[3]) if c.size() > 3 else 1.0))
+	var gt := GradientTexture1D.new()
+	gt.gradient = gradient
+	mat.color_ramp = gt
+	_mark_scene_modified()
+	return { "status": "success", "message": "Gradiente de cor definido nas partículas." }
+
+func _apply_particle_preset(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("process_material" in target):
+		return { "status": "error", "message": "Nó não suporta process_material." }
+	var preset := str(params.get("preset", "fire"))
+	var mat := ParticleProcessMaterial.new()
+	match preset:
+		"fire":
+			mat.direction = Vector3(0, -1, 0); mat.spread = 15.0; mat.gravity = Vector3(0, -20, 0)
+			mat.initial_velocity_min = 20.0; mat.initial_velocity_max = 40.0
+		"smoke":
+			mat.direction = Vector3(0, -1, 0); mat.spread = 30.0; mat.gravity = Vector3(0, -5, 0)
+			mat.initial_velocity_min = 5.0; mat.initial_velocity_max = 15.0
+		"sparks":
+			mat.direction = Vector3(0, -1, 0); mat.spread = 45.0; mat.gravity = Vector3(0, 98, 0)
+			mat.initial_velocity_min = 50.0; mat.initial_velocity_max = 100.0
+		"explosion":
+			mat.direction = Vector3(0, 0, 0); mat.spread = 180.0; mat.gravity = Vector3(0, 98, 0)
+			mat.initial_velocity_min = 80.0; mat.initial_velocity_max = 150.0
+		_:
+			return { "status": "error", "message": "Preset desconhecido: '%s'. Use: fire, smoke, sparks, explosion." % preset }
+	target.set("process_material", mat)
+	if "one_shot" in target and preset == "explosion":
+		target.set("one_shot", true)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Preset '%s' aplicado a '%s'." % [preset, target.name] }
+
+func _get_particle_info(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var info: Dictionary = { "status": "success", "node": str(target.name), "type": target.get_class() }
+	for prop in ["amount", "lifetime", "emitting", "one_shot", "explosiveness"]:
+		if prop in target:
+			info[prop] = var_to_str(target.get(prop))
+	if "process_material" in target and target.get("process_material"):
+		info["has_material"] = true
+	else:
+		info["has_material"] = false
+	info["message"] = "Info de partículas de '%s'." % target.name
+	return info
+
+# --- Bloco 12: Navigation ---
+
+func _setup_navigation_region(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var region := NavigationRegion2D.new()
+	region.name = str(params.get("node_name", "NavigationRegion2D"))
+	parent.add_child(region)
+	region.owner = scene_root
+	var mesh := NavigationPolygon.new()
+	region.navigation_polygon = mesh
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(region), "message": "NavigationRegion2D '%s' criado." % region.name }
+
+func _setup_navigation_agent(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var agent := NavigationAgent2D.new()
+	agent.name = str(params.get("node_name", "NavigationAgent2D"))
+	if params.has("target_desired_distance"):
+		agent.target_desired_distance = float(params.get("target_desired_distance"))
+	if params.has("path_desired_distance"):
+		agent.path_desired_distance = float(params.get("path_desired_distance"))
+	parent.add_child(agent)
+	agent.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(agent), "message": "NavigationAgent2D '%s' criado." % agent.name }
+
+func _bake_navigation_mesh(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is NavigationRegion2D):
+		return { "status": "error", "message": "Nó não é NavigationRegion2D." }
+	(target as NavigationRegion2D).bake_navigation_polygon()
+	return { "status": "success", "message": "Navigation mesh baked para '%s'." % target.name }
+
+func _set_navigation_layers(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	if "navigation_layers" in target:
+		target.set("navigation_layers", int(params.get("layers", 1)))
+		_mark_scene_modified()
+		return { "status": "success", "message": "Navigation layers definidos." }
+	return { "status": "error", "message": "Nó '%s' não suporta navigation_layers." % target.name }
+
+func _get_navigation_info(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var info: Dictionary = { "status": "success", "node": str(target.name), "type": target.get_class() }
+	if target is NavigationRegion2D:
+		info["has_polygon"] = target.navigation_polygon != null
+	if "navigation_layers" in target:
+		info["navigation_layers"] = int(target.get("navigation_layers"))
+	info["message"] = "Info de navegação de '%s'." % target.name
+	return info
+
+# --- Bloco 13: AnimationTree/StateMachine ---
+
+func _create_animation_tree(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var tree := AnimationTree.new()
+	tree.name = str(params.get("node_name", "AnimationTree"))
+	var root_type := str(params.get("root_type", "AnimationNodeStateMachine"))
+	if ClassDB.class_exists(root_type) and ClassDB.is_parent_class(root_type, "AnimationRootNode"):
+		tree.tree_root = ClassDB.instantiate(root_type) as AnimationRootNode
+	if params.has("anim_player"):
+		tree.anim_player = NodePath(str(params.get("anim_player")))
+	parent.add_child(tree)
+	tree.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(tree), "message": "AnimationTree '%s' criado com %s." % [tree.name, root_type] }
+
+func _get_animation_tree_structure(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var tree := target as AnimationTree
+	var info: Dictionary = { "status": "success", "node": str(tree.name) }
+	info["active"] = tree.active
+	info["has_root"] = tree.tree_root != null
+	if tree.tree_root:
+		info["root_type"] = tree.tree_root.get_class()
+	info["anim_player"] = str(tree.anim_player)
+	return info
+
+func _set_tree_parameter(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var param := str(params.get("parameter", ""))
+	if param == "":
+		return { "status": "error", "message": "Parâmetro 'parameter' obrigatório." }
+	(target as AnimationTree).set(param, params.get("value"))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Parâmetro '%s' definido." % param }
+
+func _add_state_machine_state(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var sm: AnimationNodeStateMachine = (target as AnimationTree).tree_root as AnimationNodeStateMachine
+	if not sm:
+		return { "status": "error", "message": "tree_root não é AnimationNodeStateMachine." }
+	var state_name := str(params.get("state_name", ""))
+	if state_name == "":
+		return { "status": "error", "message": "Parâmetro 'state_name' obrigatório." }
+	var node_type := str(params.get("node_type", "AnimationNodeAnimation"))
+	var anim_node: AnimationNode = ClassDB.instantiate(node_type) as AnimationNode if ClassDB.class_exists(node_type) else AnimationNodeAnimation.new()
+	if anim_node is AnimationNodeAnimation and params.has("animation"):
+		anim_node.animation = str(params.get("animation"))
+	var pos := Vector2(float(params.get("position_x", 0)), float(params.get("position_y", 0)))
+	sm.add_node(state_name, anim_node, pos)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Estado '%s' adicionado à state machine." % state_name }
+
+func _remove_state_machine_state(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var sm: AnimationNodeStateMachine = (target as AnimationTree).tree_root as AnimationNodeStateMachine
+	if not sm:
+		return { "status": "error", "message": "tree_root não é AnimationNodeStateMachine." }
+	var state_name := str(params.get("state_name", ""))
+	if not sm.has_node(state_name):
+		return { "status": "error", "message": "Estado '%s' não encontrado." % state_name }
+	sm.remove_node(state_name)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Estado '%s' removido." % state_name }
+
+func _add_state_machine_transition(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var sm: AnimationNodeStateMachine = (target as AnimationTree).tree_root as AnimationNodeStateMachine
+	if not sm:
+		return { "status": "error", "message": "tree_root não é AnimationNodeStateMachine." }
+	var from := str(params.get("from", ""))
+	var to := str(params.get("to", ""))
+	if from == "" or to == "":
+		return { "status": "error", "message": "Parâmetros 'from' e 'to' obrigatórios." }
+	var tr := AnimationNodeStateMachineTransition.new()
+	if params.has("auto_advance"):
+		tr.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO if bool(params.get("auto_advance")) else AnimationNodeStateMachineTransition.ADVANCE_MODE_ENABLED
+	sm.add_transition(from, to, tr)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Transição '%s' -> '%s' adicionada." % [from, to] }
+
+func _remove_state_machine_transition(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var sm: AnimationNodeStateMachine = (target as AnimationTree).tree_root as AnimationNodeStateMachine
+	if not sm:
+		return { "status": "error", "message": "tree_root não é AnimationNodeStateMachine." }
+	var from := str(params.get("from", ""))
+	var to := str(params.get("to", ""))
+	if from == "" or to == "":
+		return { "status": "error", "message": "Parâmetros 'from' e 'to' obrigatórios." }
+	sm.remove_transition(from, to)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Transição '%s' -> '%s' removida." % [from, to] }
+
+func _set_blend_tree_node(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not (target is AnimationTree):
+		return { "status": "error", "message": "Nó não é AnimationTree." }
+	var bt: AnimationNodeBlendTree = (target as AnimationTree).tree_root as AnimationNodeBlendTree
+	if not bt:
+		return { "status": "error", "message": "tree_root não é AnimationNodeBlendTree." }
+	var node_name := str(params.get("blend_node_name", ""))
+	var node_type := str(params.get("node_type", "AnimationNodeAnimation"))
+	if node_name == "":
+		return { "status": "error", "message": "Parâmetro 'blend_node_name' obrigatório." }
+	var anim_node: AnimationNode = ClassDB.instantiate(node_type) as AnimationNode if ClassDB.class_exists(node_type) else AnimationNodeAnimation.new()
+	var pos := Vector2(float(params.get("position_x", 0)), float(params.get("position_y", 0)))
+	bt.add_node(node_name, anim_node, pos)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Nó '%s' (%s) adicionado ao BlendTree." % [node_name, node_type] }
+
+# --- Bloco 14: Shader ---
+
+func _create_shader(params: Dictionary) -> Dictionary:
+	var save_path := str(params.get("save_path", ""))
+	var shader_type := str(params.get("shader_type", "canvas_item"))
+	var code := str(params.get("code", ""))
+	if code == "":
+		code = "shader_type %s;\n\nvoid fragment() {\n\tCOLOR = vec4(1.0, 1.0, 1.0, 1.0);\n}\n" % shader_type
+	if save_path == "":
+		return { "status": "error", "message": "Parâmetro 'save_path' obrigatório (ex: res://my_shader.gdshader)." }
+	var f := FileAccess.open(save_path, FileAccess.WRITE)
+	if not f:
+		return { "status": "error", "message": "Falha ao criar arquivo '%s'." % save_path }
+	f.store_string(code)
+	f.close()
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Shader salvo em '%s'." % save_path, "save_path": save_path }
+
+func _read_shader(params: Dictionary) -> Dictionary:
+	var path := str(params.get("shader_path", params.get("save_path", "")))
+	if path == "" or not FileAccess.file_exists(path):
+		return { "status": "error", "message": "Shader não encontrado: '%s'." % path }
+	var code := FileAccess.get_file_as_string(path)
+	return { "status": "success", "shader_path": path, "code": code }
+
+func _edit_shader(params: Dictionary) -> Dictionary:
+	var path := str(params.get("shader_path", ""))
+	var code := str(params.get("code", ""))
+	if path == "" or code == "":
+		return { "status": "error", "message": "Parâmetros 'shader_path' e 'code' obrigatórios." }
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if not f:
+		return { "status": "error", "message": "Falha ao escrever em '%s'." % path }
+	f.store_string(code)
+	f.close()
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Shader '%s' atualizado." % path }
+
+func _assign_shader_material(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var shader_path := str(params.get("shader_path", ""))
+	if shader_path == "":
+		return { "status": "error", "message": "Parâmetro 'shader_path' obrigatório." }
+	var shader: Shader = ResourceLoader.load(shader_path) as Shader
+	if not shader:
+		return { "status": "error", "message": "Shader não encontrado/inválido: '%s'." % shader_path }
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	if "material" in target:
+		target.set("material", mat)
+	else:
+		return { "status": "error", "message": "Nó '%s' não suporta 'material'." % target.name }
+	_mark_scene_modified()
+	return { "status": "success", "message": "ShaderMaterial atribuído a '%s'." % target.name }
+
+func _set_shader_param(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("material" in target):
+		return { "status": "error", "message": "Nó não encontrado ou sem material." }
+	var mat: ShaderMaterial = target.get("material") as ShaderMaterial
+	if not mat:
+		return { "status": "error", "message": "Material não é ShaderMaterial." }
+	var param := str(params.get("param", ""))
+	mat.set_shader_parameter(param, params.get("value"))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Shader param '%s' definido." % param }
+
+func _get_shader_params(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("material" in target):
+		return { "status": "error", "message": "Nó não encontrado ou sem material." }
+	var mat: ShaderMaterial = target.get("material") as ShaderMaterial
+	if not mat or not mat.shader:
+		return { "status": "error", "message": "Material não é ShaderMaterial ou sem shader." }
+	var shader_params: Array = []
+	for p in mat.shader.get_shader_uniform_list():
+		shader_params.append({ "name": str(p.get("name", "")), "type": p.get("type", 0) })
+	return { "status": "success", "params": shader_params }
+
+# --- Bloco 14: Export ---
+
+func _list_export_presets() -> Dictionary:
+	var config_path := "res://export_presets.cfg"
+	if not FileAccess.file_exists(config_path):
+		return { "status": "success", "presets": [], "message": "Nenhum preset de exportação encontrado." }
+	var content := FileAccess.get_file_as_string(config_path)
+	var presets: Array = []
+	for line in content.split("\n"):
+		var l := String(line).strip_edges()
+		if l.begins_with("name="):
+			presets.append(l.trim_prefix("name=").trim_prefix("\"").trim_suffix("\""))
+	return { "status": "success", "presets": presets, "count": presets.size() }
+
+func _export_project(params: Dictionary) -> Dictionary:
+	var preset_name := str(params.get("preset", ""))
+	var output_path := str(params.get("output_path", ""))
+	if preset_name == "" or output_path == "":
+		return { "status": "error", "message": "Parâmetros 'preset' e 'output_path' obrigatórios." }
+	var bin := OS.get_executable_path()
+	var proj := ProjectSettings.globalize_path("res://")
+	var output: Array = []
+	var code := OS.execute(bin, ["--headless", "--path", proj, "--export-debug", preset_name, output_path], output, true)
+	var raw := str(output[0]) if output.size() > 0 else ""
+	return { "status": "success", "return_code": code, "output": raw.substr(0, 2000), "message": "Export '%s' -> '%s' (code %d)." % [preset_name, output_path, code] }
+
+func _get_export_info() -> Dictionary:
+	var presets := _list_export_presets()
+	return { "status": "success", "presets": presets.get("presets", []), "godot_version": str(Engine.get_version_info().get("string", "")), "message": "Info de exportação." }
+
+# --- Bloco 14: Profiling ---
+
+func _get_performance_monitors() -> Dictionary:
+	var monitors: Dictionary = {}
+	monitors["fps"] = Performance.get_monitor(Performance.TIME_FPS)
+	monitors["process_time"] = Performance.get_monitor(Performance.TIME_PROCESS)
+	monitors["physics_time"] = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
+	monitors["render_objects"] = Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	monitors["render_draw_calls"] = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	monitors["memory_static"] = Performance.get_monitor(Performance.MEMORY_STATIC)
+	monitors["object_count"] = Performance.get_monitor(Performance.OBJECT_COUNT)
+	monitors["node_count"] = Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
+	monitors["orphan_count"] = Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
+	return { "status": "success", "monitors": monitors }
+
+func _get_editor_performance() -> Dictionary:
+	return _get_performance_monitors()  # Same data in editor context
+
+# --- Bloco 15: Batch/Refactoring ---
+
+func _find_nodes_by_type(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var type_name := str(params.get("type", ""))
+	if type_name == "":
+		return { "status": "error", "message": "Parâmetro 'type' obrigatório." }
+	var found: Array = []
+	_collect_by_type(scene_root, scene_root, type_name, found)
+	return { "status": "success", "type": type_name, "count": found.size(), "nodes": found }
+
+func _collect_by_type(node: Node, root: Node, type_name: String, out: Array) -> void:
+	if node.is_class(type_name):
+		out.append({ "name": String(node.name), "path": str(root.get_path_to(node)) if node != root else ".", "type": node.get_class() })
+	for c in node.get_children():
+		_collect_by_type(c, root, type_name, out)
+
+func _find_signal_connections(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var signal_name := str(params.get("signal", ""))
+	var connections: Array = []
+	_collect_connections(scene_root, scene_root, signal_name, connections)
+	return { "status": "success", "signal": signal_name, "count": connections.size(), "connections": connections }
+
+func _collect_connections(node: Node, root: Node, signal_filter: String, out: Array) -> void:
+	for sig in node.get_signal_list():
+		var sn := str(sig.get("name", ""))
+		if signal_filter != "" and sn != signal_filter:
+			continue
+		for conn in node.get_signal_connection_list(sn):
+			out.append({ "from": str(root.get_path_to(node)) if node != root else ".", "signal": sn, "to": str(root.get_path_to(conn.get("callable").get_object())) if conn.get("callable") else "", "method": str(conn.get("callable").get_method()) if conn.get("callable") else "" })
+	for c in node.get_children():
+		_collect_connections(c, root, signal_filter, out)
+
+func _batch_set_property(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var type_name := str(params.get("type", ""))
+	var prop := str(params.get("property", ""))
+	var value: Variant = params.get("value")
+	if type_name == "" or prop == "":
+		return { "status": "error", "message": "Parâmetros 'type' e 'property' obrigatórios." }
+	var count := 0
+	_apply_to_type(scene_root, type_name, prop, value, count)
+	_mark_scene_modified()
+	return { "status": "success", "modified": count, "message": "%d nó(s) do tipo '%s' tiveram '%s' alterado." % [count, type_name, prop] }
+
+func _apply_to_type(node: Node, type_name: String, prop: String, value: Variant, count: int) -> void:
+	if node.is_class(type_name) and prop in node:
+		node.set(prop, _coerce_value(node, prop, value))
+		count += 1
+	for c in node.get_children():
+		_apply_to_type(c, type_name, prop, value, count)
+
+func _find_node_references(params: Dictionary) -> Dictionary:
+	var node_name := str(params.get("node_name", ""))
+	if node_name == "":
+		return { "status": "error", "message": "Parâmetro 'node_name' obrigatório." }
+	var results: Array = []
+	_walk_search("res://", node_name.to_lower(), true, results)
+	return { "status": "success", "query": node_name, "count": results.size(), "files": results }
+
+func _get_scene_dependencies(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	if scene_path == "" or not FileAccess.file_exists(scene_path):
+		return { "status": "error", "message": "Cena não encontrada: '%s'." % scene_path }
+	var content := FileAccess.get_file_as_string(scene_path)
+	var deps: Array = []
+	for line in content.split("\n"):
+		var l := String(line).strip_edges()
+		if l.begins_with("[ext_resource"):
+			var path_match := l.find("path=\"")
+			if path_match >= 0:
+				var start := path_match + 6
+				var end_pos := l.find("\"", start)
+				if end_pos > start:
+					deps.append(l.substr(start, end_pos - start))
+	return { "status": "success", "scene": scene_path, "dependencies": deps, "count": deps.size() }
+
+func _cross_scene_set_property(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	var node_path := str(params.get("node_path", ""))
+	var prop := str(params.get("property", ""))
+	var value: Variant = params.get("value")
+	if scene_path == "" or node_path == "" or prop == "":
+		return { "status": "error", "message": "Parâmetros 'scene_path', 'node_path' e 'property' obrigatórios." }
+	var packed: PackedScene = ResourceLoader.load(scene_path) as PackedScene
+	if not packed:
+		return { "status": "error", "message": "Cena '%s' não encontrada." % scene_path }
+	var scene := packed.instantiate()
+	if not scene:
+		return { "status": "error", "message": "Falha ao instanciar cena." }
+	var target: Node = scene if node_path in [".", ""] else scene.get_node_or_null(node_path)
+	if not target:
+		scene.queue_free()
+		return { "status": "error", "message": "Nó '%s' não encontrado na cena '%s'." % [node_path, scene_path] }
+	target.set(prop, _coerce_value(target, prop, value))
+	var new_packed := PackedScene.new()
+	new_packed.pack(scene)
+	ResourceSaver.save(new_packed, scene_path)
+	scene.queue_free()
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Propriedade '%s' alterada em '%s' da cena '%s'." % [prop, node_path, scene_path] }
+
+func _find_script_references(params: Dictionary) -> Dictionary:
+	var script_path := str(params.get("script_path", ""))
+	if script_path == "":
+		return { "status": "error", "message": "Parâmetro 'script_path' obrigatório." }
+	var results: Array = []
+	_walk_search("res://", script_path.to_lower(), true, results)
+	return { "status": "success", "query": script_path, "count": results.size(), "files": results }
+
+func _detect_circular_dependencies(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	if scene_path == "":
+		scene_path = str(ProjectSettings.get_setting("application/run/main_scene", ""))
+	var visited: Array = []
+	var circular: Array = []
+	_check_deps_recursive(scene_path, visited, circular)
+	return { "status": "success", "circular": circular, "has_circular": circular.size() > 0, "message": "%d dependência(s) circular(es) encontrada(s)." % circular.size() }
+
+func _check_deps_recursive(path: String, visited: Array, circular: Array) -> void:
+	if path in visited:
+		circular.append(path)
+		return
+	visited.append(path)
+	if not FileAccess.file_exists(path):
+		return
+	var content := FileAccess.get_file_as_string(path)
+	for line in content.split("\n"):
+		var l := String(line).strip_edges()
+		if l.begins_with("[ext_resource") and l.contains("path=\""):
+			var start := l.find("path=\"") + 6
+			var end_pos := l.find("\"", start)
+			if end_pos > start:
+				var dep := l.substr(start, end_pos - start)
+				if dep.ends_with(".tscn"):
+					_check_deps_recursive(dep, visited.duplicate(), circular)
+
+# --- Bloco 15: Analysis ---
+
+func _analyze_scene_complexity(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var stats := { "total_nodes": 0, "max_depth": 0, "scripts": 0, "types": {} }
+	_count_nodes(scene_root, 0, stats)
+	return { "status": "success", "stats": stats, "message": "%d nós, profundidade máxima %d, %d scripts." % [stats["total_nodes"], stats["max_depth"], stats["scripts"]] }
+
+func _count_nodes(node: Node, depth: int, stats: Dictionary) -> void:
+	stats["total_nodes"] = int(stats["total_nodes"]) + 1
+	if depth > int(stats["max_depth"]):
+		stats["max_depth"] = depth
+	if node.get_script():
+		stats["scripts"] = int(stats["scripts"]) + 1
+	var t := node.get_class()
+	var types: Dictionary = stats.get("types", {})
+	types[t] = int(types.get(t, 0)) + 1
+	stats["types"] = types
+	for c in node.get_children():
+		_count_nodes(c, depth + 1, stats)
+
+func _analyze_signal_flow(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var connections: Array = []
+	_collect_connections(scene_root, scene_root, "", connections)
+	return { "status": "success", "connection_count": connections.size(), "connections": connections }
+
+func _find_unused_resources(params: Dictionary) -> Dictionary:
+	var dir := str(params.get("dir_path", "res://"))
+	var all_files: Array = []
+	_walk_search(dir, "", false, all_files)
+	# Check which resource files aren't referenced in any .tscn/.gd
+	var referenced: Dictionary = {}
+	var scenes_and_scripts: Array = []
+	_walk_search("res://", ".tscn", false, scenes_and_scripts)
+	_walk_search("res://", ".gd", false, scenes_and_scripts)
+	for f: Variant in scenes_and_scripts:
+		if FileAccess.file_exists(str(f)):
+			var content := FileAccess.get_file_as_string(str(f))
+			referenced[str(f)] = content
+	var unused: Array = []
+	for f: Variant in all_files:
+		var fs := str(f)
+		if fs.ends_with(".tres") or fs.ends_with(".png") or fs.ends_with(".svg") or fs.ends_with(".wav") or fs.ends_with(".ogg"):
+			var is_ref := false
+			for _k: Variant in referenced:
+				if String(referenced[_k]).contains(fs.get_file()):
+					is_ref = true
+					break
+			if not is_ref:
+				unused.append(fs)
+	return { "status": "success", "unused": unused, "count": unused.size(), "message": "%d recurso(s) possivelmente não referenciado(s)." % unused.size() }
+
+func _get_project_statistics() -> Dictionary:
+	var stats: Dictionary = { "status": "success" }
+	var scripts: Array = []; _walk_scripts("res://", scripts)
+	stats["script_count"] = scripts.size()
+	var scenes: Array = []; _walk_search("res://", ".tscn", false, scenes)
+	stats["scene_count"] = scenes.size()
+	var resources: Array = []; _walk_search("res://", ".tres", false, resources)
+	stats["resource_count"] = resources.size()
+	stats["name"] = str(ProjectSettings.get_setting("application/config/name", ""))
+	stats["main_scene"] = str(ProjectSettings.get_setting("application/run/main_scene", ""))
+	stats["message"] = "Projeto: %d scripts, %d cenas, %d recursos." % [scripts.size(), scenes.size(), resources.size()]
+	return stats
+
+# --- Bloco 16: 3D ---
+
+func _add_mesh_instance(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var mi := MeshInstance3D.new()
+	mi.name = str(params.get("node_name", "MeshInstance3D"))
+	var mesh_type := str(params.get("mesh_type", "BoxMesh"))
+	if ClassDB.class_exists(mesh_type) and ClassDB.is_parent_class(mesh_type, "Mesh"):
+		mi.mesh = ClassDB.instantiate(mesh_type) as Mesh
+		if mi.mesh is BoxMesh and params.has("size"):
+			var s: Variant = params.get("size")
+			if s is Array and s.size() >= 3:
+				(mi.mesh as BoxMesh).size = Vector3(float(s[0]), float(s[1]), float(s[2]))
+		elif mi.mesh is SphereMesh and params.has("radius"):
+			(mi.mesh as SphereMesh).radius = float(params.get("radius"))
+	parent.add_child(mi)
+	mi.owner = scene_root
+	if params.has("position"):
+		mi.position = _coerce_value(mi, "position", params.get("position"))
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(mi), "message": "MeshInstance3D '%s' com %s criado." % [mi.name, mesh_type] }
+
+func _setup_camera_3d(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var cam := Camera3D.new()
+	cam.name = str(params.get("node_name", "Camera3D"))
+	if params.has("position"):
+		cam.position = _coerce_value(cam, "position", params.get("position"))
+	if params.has("fov"):
+		cam.fov = float(params.get("fov"))
+	if params.has("current"):
+		cam.current = bool(params.get("current"))
+	parent.add_child(cam)
+	cam.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(cam), "message": "Camera3D '%s' criada." % cam.name }
+
+func _setup_lighting(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var light_type := str(params.get("light_type", "DirectionalLight3D"))
+	if not ClassDB.class_exists(light_type) or not ClassDB.is_parent_class(light_type, "Light3D"):
+		light_type = "DirectionalLight3D"
+	var light: Node = ClassDB.instantiate(light_type)
+	light.name = str(params.get("node_name", light_type))
+	parent.add_child(light)
+	light.owner = scene_root
+	if params.has("energy"):
+		light.set("light_energy", float(params.get("energy")))
+	if params.has("color"):
+		light.set("light_color", _coerce_value(light, "light_color", params.get("color")))
+	if params.has("position"):
+		light.set("position", _coerce_value(light, "position", params.get("position")))
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(light), "message": "%s '%s' criado." % [light_type, light.name] }
+
+func _setup_environment(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var we := WorldEnvironment.new()
+	we.name = str(params.get("node_name", "WorldEnvironment"))
+	var env := Environment.new()
+	if params.has("bg_mode"):
+		env.background_mode = int(params.get("bg_mode"))
+	if params.has("bg_color"):
+		env.background_color = _coerce_value(env, "background_color", params.get("bg_color"))
+	if params.has("ambient_color"):
+		env.ambient_light_color = _coerce_value(env, "ambient_light_color", params.get("ambient_color"))
+	we.environment = env
+	parent.add_child(we)
+	we.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(we), "message": "WorldEnvironment '%s' criado." % we.name }
+
+func _add_gridmap(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta." }
+	var parent := _resolve_node(scene_root, str(params.get("parent_path", ".")))
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var gm := GridMap.new()
+	gm.name = str(params.get("node_name", "GridMap"))
+	parent.add_child(gm)
+	gm.owner = scene_root
+	if params.has("cell_size"):
+		var cs: Variant = params.get("cell_size")
+		if cs is Array and cs.size() >= 3:
+			gm.cell_size = Vector3(float(cs[0]), float(cs[1]), float(cs[2]))
+	_mark_scene_modified()
+	return { "status": "success", "node": _rel_path(gm), "message": "GridMap '%s' criado." % gm.name }
+
+func _set_material_3d(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	if not (target is MeshInstance3D):
+		return { "status": "error", "message": "Nó '%s' não é MeshInstance3D." % target.name }
+	var mi := target as MeshInstance3D
+	var mat := StandardMaterial3D.new()
+	if params.has("albedo_color"):
+		mat.albedo_color = _coerce_value(mat, "albedo_color", params.get("albedo_color"))
+	if params.has("metallic"):
+		mat.metallic = float(params.get("metallic"))
+	if params.has("roughness"):
+		mat.roughness = float(params.get("roughness"))
+	if params.has("emission_color"):
+		mat.emission_enabled = true
+		mat.emission = _coerce_value(mat, "emission", params.get("emission_color"))
+	var surface_idx := int(params.get("surface_index", 0))
+	mi.set_surface_override_material(surface_idx, mat)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Material 3D aplicado a '%s' (surface %d)." % [target.name, surface_idx] }
 
 func _record_property_over_time(params: Dictionary) -> Dictionary:
 	var node_path := str(params.get("node_path", "."))
