@@ -142,6 +142,48 @@ func process_command(command_json: String) -> Dictionary:
 			return _docs_search(params)
 		"verify_playable":
 			return _verify_playable(params)
+		"set_game_node_property":
+			return _query_runtime("set_property", params)
+		"get_game_node_properties":
+			return _query_runtime("get_properties", params)
+		"find_ui_elements":
+			return _query_runtime("find_nodes", params)
+		"click_button_by_text":
+			return _query_runtime("click_button", params)
+		"assert_node_state":
+			return _assert_node_state(params)
+		"assert_screen_text":
+			return _assert_screen_text(params)
+		"wait_for_node":
+			return _wait_for_node(params)
+		"get_node_properties":
+			return _get_node_properties(params)
+		"disconnect_signal":
+			return _disconnect_signal(params)
+		"find_nodes_in_group":
+			return _find_nodes_in_group(params)
+		"get_node_groups":
+			return _get_node_groups(params)
+		"delete_scene":
+			return _delete_scene(params)
+		"get_project_info":
+			return _get_project_info()
+		"search_files":
+			return _search_files(params)
+		"setup_physics_body":
+			return _setup_physics_body(params)
+		"set_physics_layers":
+			return _set_physics_layers(params)
+		"get_physics_layers":
+			return _get_physics_layers(params)
+		"add_raycast":
+			return _add_raycast(params)
+		"create_animation":
+			return _create_animation(params)
+		"add_animation_track":
+			return _add_animation_track(params)
+		"set_animation_keyframe":
+			return _set_animation_keyframe(params)
 
 		# ======================================================================
 		# 2. FERRAMENTAS DO MUNDO / ONTOLOGIA (WORLD STATE: BUILD MODE)
@@ -1331,6 +1373,306 @@ func _headless_validate(scene_path: String, frames: int) -> Dictionary:
 		if l.contains("SCRIPT ERROR") or l.contains("Parse Error") or l.begins_with("ERROR:") or l.contains("Nonexistent") or l.contains("Invalid call") or l.contains("Failed to load") or l.contains("Can't create"):
 			errors.append(l)
 	return { "status": "success", "errors": errors, "return_code": code }
+
+# QA: afirma que uma propriedade de um nó no JOGO EM EXECUÇÃO tem o valor esperado.
+func _assert_node_state(params: Dictionary) -> Dictionary:
+	var node_path := str(params.get("node_path", "."))
+	var prop := str(params.get("property", ""))
+	var expected := str(params.get("expected", ""))
+	var r := _query_runtime("get_property", { "node_path": node_path, "property": prop })
+	if r.get("status") != "success":
+		return r
+	var actual := str(r.get("value", ""))
+	var ok := actual == expected or actual.contains(expected)
+	return {
+		"status": "success", "passed": ok, "node": node_path, "property": prop,
+		"expected": expected, "actual": actual,
+		"message": ("✅ ASSERT OK: %s.%s == %s" % [node_path, prop, expected]) if ok else ("❌ ASSERT FALHOU: %s.%s = %s (esperado: %s)" % [node_path, prop, actual, expected])
+	}
+
+# QA: afirma que um texto aparece na tela do jogo (Labels/Buttons visíveis).
+func _assert_screen_text(params: Dictionary) -> Dictionary:
+	var expected := str(params.get("text", ""))
+	var r := _query_runtime("get_screen_text", {})
+	if r.get("status") != "success":
+		return r
+	var texts: Array = r.get("texts", [])
+	var found := false
+	for t in texts:
+		if str(t).contains(expected):
+			found = true
+			break
+	return {
+		"status": "success", "passed": found, "expected": expected, "screen_texts": texts,
+		"message": ("✅ Texto '%s' está na tela." % expected) if found else ("❌ Texto '%s' NÃO está na tela. Textos: %s" % [expected, str(texts)])
+	}
+
+# Espera um nó aparecer no jogo em execução (polling com timeout).
+func _wait_for_node(params: Dictionary) -> Dictionary:
+	var node_path := str(params.get("node_path", ""))
+	var timeout_ms := clampi(int(params.get("timeout_ms", 3000)), 200, 10000)
+	var t0 := Time.get_ticks_msec()
+	while (Time.get_ticks_msec() - t0) < timeout_ms:
+		var r := _query_runtime("node_exists", { "node_path": node_path })
+		if r.get("status") == "success" and bool(r.get("exists", false)):
+			return { "status": "success", "found": true, "node_path": node_path, "message": "Nó '%s' apareceu." % node_path }
+		OS.delay_msec(150)
+	return { "status": "success", "found": false, "node_path": node_path, "message": "Nó '%s' não apareceu em %dms." % [node_path, timeout_ms] }
+
+# Lista TODAS as propriedades editáveis de um nó na cena EDITADA (no editor).
+func _get_node_properties(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var props: Dictionary = {}
+	for p in target.get_property_list():
+		var pn := str(p.get("name", ""))
+		if pn != "" and not pn.begins_with("_") and (int(p.get("usage", 0)) & PROPERTY_USAGE_EDITOR) != 0:
+			props[pn] = var_to_str(target.get(pn))
+	return { "status": "success", "node": str(target.name), "type": target.get_class(), "properties": props }
+
+# Desconecta um sinal de um nó (o inverso de connect_signal).
+func _disconnect_signal(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var from_path := str(params.get("from_node", params.get("node_path", ".")))
+	var signal_name := str(params.get("signal", ""))
+	var to_path := str(params.get("to_node", "."))
+	var method := str(params.get("method", ""))
+	if signal_name == "" or method == "":
+		return { "status": "error", "message": "Parâmetros obrigatórios: 'signal' e 'method'." }
+	var from_node: Node = scene_root if from_path in [".", ""] else scene_root.get_node_or_null(from_path)
+	var to_node: Node = scene_root if to_path in [".", ""] else scene_root.get_node_or_null(to_path)
+	if not from_node or not to_node:
+		return { "status": "error", "message": "Nó emissor ou receptor não encontrado." }
+	var cb := Callable(to_node, method)
+	if not from_node.is_connected(signal_name, cb):
+		return { "status": "error", "message": "Sinal '%s' não estava conectado a '%s'." % [signal_name, method] }
+	from_node.disconnect(signal_name, cb)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Sinal '%s' desconectado de '%s'." % [signal_name, method] }
+
+# Retorna os nós da cena editada que pertencem a um grupo.
+func _find_nodes_in_group(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var group := str(params.get("group", ""))
+	if group == "":
+		return { "status": "error", "message": "Parâmetro 'group' obrigatório." }
+	var found: Array = []
+	_collect_group_nodes(scene_root, scene_root, group, found)
+	return { "status": "success", "group": group, "count": found.size(), "nodes": found }
+
+func _collect_group_nodes(node: Node, scene_root: Node, group: String, out: Array) -> void:
+	if node.is_in_group(group):
+		out.append(str(scene_root.get_path_to(node)) if node != scene_root else ".")
+	for c in node.get_children():
+		_collect_group_nodes(c, scene_root, group, out)
+
+# Grupos aos quais um nó pertence.
+func _get_node_groups(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target:
+		return { "status": "error", "message": "Nó não encontrado." }
+	var groups: Array = []
+	for g in target.get_groups():
+		var gs := str(g)
+		if not gs.begins_with("_"):
+			groups.append(gs)
+	return { "status": "success", "node": str(target.name), "groups": groups }
+
+# Apaga um arquivo de cena .tscn do disco.
+func _delete_scene(params: Dictionary) -> Dictionary:
+	var scene_path := str(params.get("scene_path", ""))
+	if scene_path == "" or not scene_path.ends_with(".tscn"):
+		return { "status": "error", "message": "Informe 'scene_path' terminando em .tscn." }
+	if not FileAccess.file_exists(scene_path):
+		return { "status": "error", "message": "Cena '%s' não existe." % scene_path }
+	var err := DirAccess.remove_absolute(ProjectSettings.globalize_path(scene_path))
+	if err != OK:
+		return { "status": "error", "message": "Falha ao apagar (erro %d)." % err }
+	_refresh_editor_filesystem()
+	return { "status": "success", "message": "Cena '%s' apagada." % scene_path }
+
+# Informações gerais do projeto.
+func _get_project_info() -> Dictionary:
+	return {
+		"status": "success",
+		"name": str(ProjectSettings.get_setting("application/config/name", "")),
+		"main_scene": str(ProjectSettings.get_setting("application/run/main_scene", "")),
+		"godot_version": str(Engine.get_version_info().get("string", "")),
+		"features": var_to_str(ProjectSettings.get_setting("application/config/features", []))
+	}
+
+# Busca arquivos por nome (e opcionalmente conteúdo) sob res://.
+func _search_files(params: Dictionary) -> Dictionary:
+	var query := str(params.get("query", ""))
+	if query == "":
+		return { "status": "error", "message": "Parâmetro 'query' obrigatório." }
+	var search_content := bool(params.get("search_content", false))
+	var results: Array = []
+	_walk_search("res://", query.to_lower(), search_content, results)
+	return { "status": "success", "query": query, "count": results.size(), "files": results }
+
+func _walk_search(dir: String, q: String, search_content: bool, out: Array) -> void:
+	if out.size() >= 100:
+		return
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var f := d.get_next()
+	while f != "" and out.size() < 100:
+		if f in [".", ".."] or f.begins_with(".godot") or f == ".crom":
+			f = d.get_next()
+			continue
+		var full := dir.path_join(f)
+		if d.current_is_dir():
+			_walk_search(full, q, search_content, out)
+		else:
+			var hit := f.to_lower().contains(q)
+			if not hit and search_content and (f.ends_with(".gd") or f.ends_with(".tscn") or f.ends_with(".tres")):
+				var content := FileAccess.get_file_as_string(full)
+				hit = content.to_lower().contains(q)
+			if hit:
+				out.append(full)
+		f = d.get_next()
+	d.list_dir_end()
+
+# Cria um corpo físico 2D com CollisionShape2D + shape num único passo.
+func _setup_physics_body(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var body_type := str(params.get("body_type", "CharacterBody2D"))
+	if not ClassDB.class_exists(body_type) or not ClassDB.is_parent_class(body_type, "CollisionObject2D"):
+		return { "status": "error", "message": "body_type inválido: '%s' (use CharacterBody2D, RigidBody2D, StaticBody2D, Area2D)." % body_type }
+	var parent_path := str(params.get("parent_path", "."))
+	var parent: Node = scene_root if parent_path in [".", ""] else scene_root.get_node_or_null(parent_path)
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado em '%s'." % parent_path }
+	var body: Node = ClassDB.instantiate(body_type)
+	body.name = str(params.get("node_name", body_type))
+	parent.add_child(body)
+	body.owner = scene_root
+	if params.has("position"):
+		body.set("position", _coerce_value(body, "position", params.get("position")))
+	var col := CollisionShape2D.new()
+	col.name = "CollisionShape2D"
+	body.add_child(col)
+	col.owner = scene_root
+	var shape_type := str(params.get("shape_type", "RectangleShape2D"))
+	if ClassDB.class_exists(shape_type) and ClassDB.is_parent_class(shape_type, "Shape2D"):
+		var shape: Shape2D = ClassDB.instantiate(shape_type)
+		if shape is RectangleShape2D and params.has("size"):
+			shape.size = _coerce_value(shape, "size", params.get("size"))
+		elif shape is CircleShape2D and params.has("radius"):
+			shape.radius = float(params.get("radius"))
+		col.shape = shape
+	_mark_scene_modified()
+	return { "status": "success", "body": _rel_path(body), "collision_shape": _rel_path(col), "message": "%s '%s' com CollisionShape2D criado." % [body_type, body.name] }
+
+# Define collision_layer / collision_mask de um corpo físico.
+func _set_physics_layers(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("collision_layer" in target):
+		return { "status": "error", "message": "Nó não é um corpo físico (sem collision_layer)." }
+	if params.has("layer"):
+		target.set("collision_layer", int(params.get("layer")))
+	if params.has("mask"):
+		target.set("collision_mask", int(params.get("mask")))
+	_mark_scene_modified()
+	return { "status": "success", "collision_layer": int(target.get("collision_layer")), "collision_mask": int(target.get("collision_mask")) }
+
+# Lê collision_layer / collision_mask de um corpo físico.
+func _get_physics_layers(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not target or not ("collision_layer" in target):
+		return { "status": "error", "message": "Nó não é um corpo físico (sem collision_layer)." }
+	return { "status": "success", "collision_layer": int(target.get("collision_layer")), "collision_mask": int(target.get("collision_mask")) }
+
+# Adiciona um RayCast2D a um nó pai.
+func _add_raycast(params: Dictionary) -> Dictionary:
+	var scene_root := _get_edited_scene_root()
+	if not scene_root:
+		return { "status": "error", "message": "Nenhuma cena aberta no editor." }
+	var parent_path := str(params.get("parent_path", "."))
+	var parent: Node = scene_root if parent_path in [".", ""] else scene_root.get_node_or_null(parent_path)
+	if not parent:
+		return { "status": "error", "message": "Nó pai não encontrado." }
+	var ray := RayCast2D.new()
+	ray.name = str(params.get("node_name", "RayCast2D"))
+	if params.has("target_position"):
+		ray.target_position = _coerce_value(ray, "target_position", params.get("target_position"))
+	ray.enabled = bool(params.get("enabled", true))
+	parent.add_child(ray)
+	ray.owner = scene_root
+	_mark_scene_modified()
+	return { "status": "success", "raycast": _rel_path(ray), "message": "RayCast2D '%s' adicionado." % ray.name }
+
+# Cria uma Animation vazia num AnimationPlayer (na biblioteca padrão "").
+func _create_animation(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not (target is AnimationPlayer):
+		return { "status": "error", "message": "node_path precisa apontar para um AnimationPlayer." }
+	var player := target as AnimationPlayer
+	var anim_name := str(params.get("animation_name", ""))
+	if anim_name == "":
+		return { "status": "error", "message": "Parâmetro 'animation_name' obrigatório." }
+	var lib: AnimationLibrary
+	if player.has_animation_library(""):
+		lib = player.get_animation_library("")
+	else:
+		lib = AnimationLibrary.new()
+		player.add_animation_library("", lib)
+	if lib.has_animation(anim_name):
+		return { "status": "error", "message": "Animação '%s' já existe." % anim_name }
+	var anim := Animation.new()
+	anim.length = float(params.get("length", 1.0))
+	anim.loop_mode = Animation.LOOP_LINEAR if bool(params.get("loop", false)) else Animation.LOOP_NONE
+	lib.add_animation(anim_name, anim)
+	_mark_scene_modified()
+	return { "status": "success", "message": "Animação '%s' criada (%.2fs)." % [anim_name, anim.length] }
+
+# Adiciona uma track de VALOR (nó:propriedade) a uma animação existente.
+func _add_animation_track(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not (target is AnimationPlayer):
+		return { "status": "error", "message": "node_path precisa apontar para um AnimationPlayer." }
+	var player := target as AnimationPlayer
+	var anim_name := str(params.get("animation_name", ""))
+	var track_path := str(params.get("track_path", ""))
+	if anim_name == "" or track_path == "":
+		return { "status": "error", "message": "Parâmetros 'animation_name' e 'track_path' (ex: 'Sprite2D:position') obrigatórios." }
+	if not player.has_animation(anim_name):
+		return { "status": "error", "message": "Animação '%s' não existe." % anim_name }
+	var anim := player.get_animation(anim_name)
+	var idx := anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(idx, NodePath(track_path))
+	_mark_scene_modified()
+	return { "status": "success", "track_index": idx, "message": "Track de valor '%s' adicionada à animação '%s'." % [track_path, anim_name] }
+
+# Insere um keyframe numa track (por índice OU por track_path).
+func _set_animation_keyframe(params: Dictionary) -> Dictionary:
+	var target := _resolve_scene_node(params)
+	if not (target is AnimationPlayer):
+		return { "status": "error", "message": "node_path precisa apontar para um AnimationPlayer." }
+	var player := target as AnimationPlayer
+	var anim_name := str(params.get("animation_name", ""))
+	if not player.has_animation(anim_name):
+		return { "status": "error", "message": "Animação '%s' não existe." % anim_name }
+	var anim := player.get_animation(anim_name)
+	var track_idx := int(params.get("track_index", -1))
+	if track_idx < 0 and params.has("track_path"):
+		track_idx = anim.find_track(NodePath(str(params.get("track_path"))), Animation.TYPE_VALUE)
+	if track_idx < 0 or track_idx >= anim.get_track_count():
+		return { "status": "error", "message": "Track não encontrada (informe track_index ou track_path válido)." }
+	var time := float(params.get("time", 0.0))
+	anim.track_insert_key(track_idx, time, params.get("value"))
+	_mark_scene_modified()
+	return { "status": "success", "message": "Keyframe inserido em t=%.2fs na track %d." % [time, track_idx] }
 
 func _record_property_over_time(params: Dictionary) -> Dictionary:
 	var node_path := str(params.get("node_path", "."))

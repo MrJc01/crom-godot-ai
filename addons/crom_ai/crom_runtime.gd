@@ -49,7 +49,7 @@ func _process(_delta: float) -> void:
 			i += 1
 
 func _handle(msg: String) -> Dictionary:
-	var parsed = JSON.parse_string(msg)
+	var parsed: Variant = JSON.parse_string(msg)
 	if not (parsed is Dictionary):
 		return { "status": "error", "message": "JSON inválido." }
 	var action := str(parsed.get("action", ""))
@@ -71,7 +71,91 @@ func _handle(msg: String) -> Dictionary:
 			if not (prop in n):
 				return { "status": "error", "message": "Propriedade '%s' não existe em '%s'." % [prop, n.name] }
 			return { "status": "success", "node": np, "property": prop, "value": var_to_str(n.get(prop)) }
+		"set_property":
+			var np := str(params.get("node_path", "."))
+			var prop := str(params.get("property", ""))
+			var n: Node = _resolve_rt(np)
+			if not n:
+				return { "status": "error", "message": "Nó '%s' não encontrado no jogo." % np }
+			if not (prop in n):
+				return { "status": "error", "message": "Propriedade '%s' não existe em '%s'." % [prop, n.name] }
+			n.set(prop, _coerce_rt(n.get(prop), params.get("value")))
+			return { "status": "success", "node": np, "property": prop, "value": var_to_str(n.get(prop)) }
+		"get_properties":
+			var np := str(params.get("node_path", "."))
+			var n: Node = _resolve_rt(np)
+			if not n:
+				return { "status": "error", "message": "Nó '%s' não encontrado no jogo." % np }
+			var props: Dictionary = {}
+			for p in n.get_property_list():
+				var pn := str(p.get("name", ""))
+				if pn != "" and not pn.begins_with("_") and (int(p.get("usage", 0)) & PROPERTY_USAGE_EDITOR) != 0:
+					props[pn] = var_to_str(n.get(pn))
+			return { "status": "success", "node": np, "type": n.get_class(), "properties": props }
+		"node_exists":
+			var np := str(params.get("node_path", ""))
+			return { "status": "success", "exists": _resolve_rt(np) != null }
+		"find_nodes":
+			var type_filter := str(params.get("type", ""))
+			var results: Array = []
+			if scene:
+				_find_by_type(scene, scene, type_filter, results)
+			return { "status": "success", "type": type_filter, "count": results.size(), "nodes": results }
+		"get_screen_text":
+			var texts: Array = []
+			if scene:
+				_collect_text(scene, texts)
+			return { "status": "success", "texts": texts }
+		"click_button":
+			var text := str(params.get("text", ""))
+			var btn: BaseButton = _find_button_by_text(scene, text) if scene else null
+			if not btn:
+				return { "status": "error", "message": "Botão com texto '%s' não encontrado no jogo." % text }
+			if btn.has_signal("pressed"):
+				btn.emit_signal("pressed")
+			return { "status": "success", "message": "Botão '%s' acionado." % text }
 	return { "status": "error", "message": "Ação de runtime desconhecida: '%s'." % action }
+
+func _resolve_rt(np: String) -> Node:
+	var scene := get_tree().current_scene
+	if not scene:
+		return null
+	if np in [".", ""]:
+		return scene
+	return scene.get_node_or_null(np)
+
+func _coerce_rt(current: Variant, value: Variant) -> Variant:
+	if value is Array:
+		if current is Vector2 and value.size() >= 2:
+			return Vector2(value[0], value[1])
+		if current is Vector3 and value.size() >= 3:
+			return Vector3(value[0], value[1], value[2])
+		if current is Color and value.size() >= 3:
+			return Color(value[0], value[1], value[2], value[3] if value.size() > 3 else 1.0)
+	return value
+
+func _find_by_type(node: Node, scene: Node, type_filter: String, out: Array) -> void:
+	if type_filter == "" or node.is_class(type_filter):
+		out.append({ "name": String(node.name), "type": node.get_class(), "path": str(scene.get_path_to(node)) })
+	for c in node.get_children():
+		_find_by_type(c, scene, type_filter, out)
+
+func _collect_text(node: Node, out: Array) -> void:
+	if (node is Label or node is Button) and "text" in node:
+		var t := str(node.text).strip_edges()
+		if t != "":
+			out.append(t)
+	for c in node.get_children():
+		_collect_text(c, out)
+
+func _find_button_by_text(node: Node, text: String) -> BaseButton:
+	if node is Button and "text" in node and str(node.text).strip_edges() == text.strip_edges():
+		return node
+	for c in node.get_children():
+		var r: BaseButton = _find_button_by_text(c, text)
+		if r:
+			return r
+	return null
 
 func _serialize(node: Node, depth: int) -> Dictionary:
 	var children := []
